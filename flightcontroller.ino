@@ -1,13 +1,15 @@
-#include "MPU6050DataFetcher.h"
+#include "imu.h"
 
-Mpu mpu;
+Imu imu(13);
 
 void setup() {
   Serial.begin(9600);
-  mpu.begin();
+  imu.calibrate();
 }
 
 void loop() {
-  mpu.fetch();
-  Serial.println(mpu.get(Mpu6050::ACCELX));
+  imu.run();
+  Serial.print(imu.angle_x());
+  Serial.print(" ");
+  Serial.println(imu.angle_y());
 }
