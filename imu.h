@@ -1,5 +1,5 @@
-#ifndef MPU6050DATAFETCHER_H
-#define MPU6050DATAFETCHER_H
+#ifndef IMU_H
+#define IMU_H
 
 #include <Arduino.h>
 #include <Wire.h>
@@ -7,9 +7,9 @@
 // IMU CALIBRATION SETTINGS
 #define PRE_CALIBRATION_REST_TIMER 500
 #define MIN_ACCEL_DIFF 200
-#define GYRO_CALIBRATION_READINGS 2000
+#define GYRO_CALIBRATION_READINGS 1000
 
-#define ANGULAR_RATE_TO_DISPLACEMENT_CONVERSION 0.00030534
+#define ANGULAR_RATE_TO_DISPLACEMENT_CONVERSION 0.0152671756 // 1 / 65.5
 #define DEGREES_TO_RADIANS_CONVERSION 0.01745329 
 
 //MPU6050 ADDRESSES
@@ -65,8 +65,11 @@ class Imu : public Mpu6050 {
 
   private:
     double x_angle, y_angle, z_angle;
+    double x_angle_prev, y_angle_prev, z_angle_prev;
     
     double x_zero, y_zero, z_zero;
+
+    unsigned long timer;
 
     int status_led;
     bool led_state;

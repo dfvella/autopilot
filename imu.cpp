@@ -47,10 +47,10 @@ void Imu::calibrate() {
 
   pinMode(status_led, OUTPUT);
 
-  long timer;
   int count = 0, rest = 0;
   int x_prev, y_prev, z_prev;
   
+  timer = 0;
   while (rest < PRE_CALIBRATION_REST_TIMER) {
     while (micros() - timer < 4000);
     timer = micros();
@@ -104,12 +104,22 @@ void Imu::calibrate() {
 void Imu::run() {
   fetch();
 
-  x_angle += (get(GYROX) - x_zero) * ANGULAR_RATE_TO_DISPLACEMENT_CONVERSION;
-  y_angle += (get(GYROY) - y_zero) * ANGULAR_RATE_TO_DISPLACEMENT_CONVERSION;
-  z_angle += (get(GYROZ) - z_zero) * ANGULAR_RATE_TO_DISPLACEMENT_CONVERSION;
+  static bool start = true;
+  if (start) {
+    start = false;
+    timer = micros();
+  }
+  else {
+    double t_delta = (micros() - timer) / 1000000.0; // seconds
+    timer = micros();
 
-  x_angle += y_angle * sin(get(GYROZ) - z_zero) * ANGULAR_RATE_TO_DISPLACEMENT_CONVERSION * DEGREES_TO_RADIANS_CONVERSION;
-  y_angle -= x_angle * sin(get(GYROZ) - z_zero) * ANGULAR_RATE_TO_DISPLACEMENT_CONVERSION * DEGREES_TO_RADIANS_CONVERSION;
+    x_angle += (get(GYROX) - x_zero) * ANGULAR_RATE_TO_DISPLACEMENT_CONVERSION * t_delta;
+    y_angle += (get(GYROY) - y_zero) * ANGULAR_RATE_TO_DISPLACEMENT_CONVERSION * t_delta;
+    z_angle += (get(GYROZ) - z_zero) * ANGULAR_RATE_TO_DISPLACEMENT_CONVERSION * t_delta;
+
+    x_angle += y_angle * sin((get(GYROZ) - z_zero) * ANGULAR_RATE_TO_DISPLACEMENT_CONVERSION * t_delta * DEGREES_TO_RADIANS_CONVERSION);
+    y_angle -= x_angle * sin((get(GYROZ) - z_zero) * ANGULAR_RATE_TO_DISPLACEMENT_CONVERSION * t_delta * DEGREES_TO_RADIANS_CONVERSION);
+  }
 }
 
 double Imu::angle_x() {
