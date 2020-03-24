@@ -1,10 +1,17 @@
 #include "imu.h"
 
+#define CALIBRATE_ACCELEROMETER
+
 Imu imu(13);
 
 void setup() {
   Serial.begin(9600);
+  #ifdef CALIBRATE_ACCELEROMETER
+  imu.calibrate_accel();
+  #endif 
+  #ifndef CALIBRATE_ACCELEROMETER
   imu.calibrate();
+  #endif
 }
 
 void loop() {

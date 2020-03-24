@@ -8,6 +8,11 @@
 #define PRE_CALIBRATION_REST_TIMER 500
 #define MIN_ACCEL_DIFF 200
 #define GYRO_CALIBRATION_READINGS 1000
+#define ACCEL_CALIBRATION_READINGS 5000
+
+#define ACCELX_LEVEL_READING 485
+#define ACCELY_LEVEL_READING -138
+#define ACCELZ_LEVEL_READING -3081
 
 #define ANGULAR_RATE_TO_DISPLACEMENT_CONVERSION 0.0152671756 // 1 / 65.5
 #define DEGREES_TO_RADIANS_CONVERSION 0.01745329 
@@ -59,6 +64,7 @@ class Imu : public Mpu6050 {
   public:
     Imu(int led_pin);
     void calibrate();
+    void calibrate_accel(); // place on level surface
     void run();
     double angle_x();
     double angle_y();

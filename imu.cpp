@@ -101,6 +101,39 @@ void Imu::calibrate() {
   z_angle = 0;
 }
 
+void Imu::calibrate_accel() {
+  calibrate();
+  Serial.println("Calibrating Accelerometer");
+
+  double x = 0;
+  double y = 0;
+  double z = 0;
+  
+  timer = 0;
+  int count = 0;
+  for (int i = 0; i < ACCEL_CALIBRATION_READINGS; ++i) {
+    while (micros() - timer < 5000);
+    timer = micros();
+
+    fetch();
+
+    x += get(ACCELX) / (float)ACCEL_CALIBRATION_READINGS;
+    y += get(ACCELY) / (float)ACCEL_CALIBRATION_READINGS;
+    z += get(ACCELZ) / (float)ACCEL_CALIBRATION_READINGS;
+
+    if (++count % 25 == 0) led_state = !led_state;
+    digitalWrite(status_led, led_state); 
+  }
+
+  Serial.print(" x: ");
+  Serial.print(x);
+  Serial.print(" y: ");
+  Serial.print(y);
+  Serial.print(" z: ");
+  Serial.print(z);
+  Serial.println();
+}
+
 void Imu::run() {
   fetch();
 
