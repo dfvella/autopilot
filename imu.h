@@ -46,7 +46,6 @@ class Mpu6050 {
     void begin();
     void fetch();
     int get(int val);
-    ~Mpu6050();
 
     const static int ACCELX = 0;
     const static int ACCELY = 1;
@@ -57,7 +56,7 @@ class Mpu6050 {
     const static int GYROZ = 6;
 
   private:
-    int* data;
+    int data[7];
 };
 
 class Imu : public Mpu6050 {

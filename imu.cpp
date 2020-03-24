@@ -1,6 +1,6 @@
 #include "imu.h"
 
-Mpu6050::Mpu6050() : data(new int[7]) { }
+Mpu6050::Mpu6050() { }
 
 void Mpu6050::begin() {
   Wire.beginTransmission(MPU6050_I2C_ADDRESS);
@@ -33,11 +33,7 @@ void Mpu6050::fetch() {
 }
 
 int Mpu6050::get(int val) {
-  return *(data + val);
-}
-
-Mpu6050::~Mpu6050() {
-  delete[] data;
+  return data[val];
 }
 
 Imu::Imu(int led_pin) : status_led(led_pin), Mpu6050() { }
