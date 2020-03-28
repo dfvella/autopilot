@@ -47,13 +47,15 @@ class Mpu6050 {
     void fetch();
     int get(int val);
 
-    const static int ACCELX = 0;
-    const static int ACCELY = 1;
-    const static int ACCELZ = 2;
-    const static int TEMP = 3;
-    const static int GYROX = 4;
-    const static int GYROY = 5;
-    const static int GYROZ = 6;
+    static constexpr int ACCELX = 0;
+    static constexpr int ACCELY = 1;
+    static constexpr int ACCELZ = 2;
+    static constexpr int TEMP = 3;
+    static constexpr int GYROX = 4;
+    static constexpr int GYROY = 5;
+    static constexpr int GYROZ = 6;
+
+    static constexpr double TICKS_PER_DEGREE = 0.0152671756;
 
   private:
     int data[7];
@@ -68,7 +70,43 @@ class Imu : public Mpu6050 {
     double angle_x();
     double angle_y();
 
+    double get_roll();
+    double get_pitch();
+    double get_yaw();
+
+    static constexpr double DEGREES_TO_RADIANS = 0.01745329;
+
   private:
+    class Vector;
+    class Quaternion {
+      public:
+        Quaternion(double w, double x, double y, double z);
+        static Quaternion product(Quaternion p, Quaternion q);
+        double norm();
+        void normalize();
+        void conjugate();
+        double roll();
+        double pitch();
+        double yaw();
+      private:
+        double w, x, y, z;
+        friend class Vector;
+    };
+
+    class Vector {
+      public:
+        Vector(double x, double y, double z);
+        void conjugate();
+        double norm();
+        void rotate(Quaternion q);
+        static Vector add(Vector v, Vector u);
+      private:
+        double x, y, z;
+    };
+
+    Quaternion orientation;
+    double roll, pitch, yaw;
+
     double x_angle, y_angle, z_angle;
     double x_angle_prev, y_angle_prev, z_angle_prev;
     

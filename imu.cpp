@@ -36,7 +36,8 @@ int Mpu6050::get(int val) {
   return data[val];
 }
 
-Imu::Imu(int led_pin) : status_led(led_pin), Mpu6050() { }
+Imu::Imu(int led_pin) : status_led(led_pin), Mpu6050(), 
+  orientation(Quaternion(1, 0.0001, 0.0001, 0.0001)) { }
 
 void Imu::calibrate() {
   begin();
@@ -108,7 +109,7 @@ void Imu::calibrate_accel() {
   timer = 0;
   int count = 0;
   for (int i = 0; i < ACCEL_CALIBRATION_READINGS; ++i) {
-    while (micros() - timer < 5000);
+    while (micros() - timer < 4000);
     timer = micros();
 
     fetch();
@@ -142,19 +143,120 @@ void Imu::run() {
     double t_delta = (micros() - timer) / 1000000.0; // seconds
     timer = micros();
 
-    x_angle += (get(GYROX) - x_zero) * ANGULAR_RATE_TO_DISPLACEMENT_CONVERSION * t_delta;
-    y_angle += (get(GYROY) - y_zero) * ANGULAR_RATE_TO_DISPLACEMENT_CONVERSION * t_delta;
-    z_angle += (get(GYROZ) - z_zero) * ANGULAR_RATE_TO_DISPLACEMENT_CONVERSION * t_delta;
+    // create 3D vector of net angular rate
+    double w_x = (get(GYROX) - x_zero) * TICKS_PER_DEGREE * DEGREES_TO_RADIANS;
+    double w_y = (get(GYROY) - y_zero) * TICKS_PER_DEGREE * DEGREES_TO_RADIANS;
+    double w_z = (get(GYROZ) - z_zero) * TICKS_PER_DEGREE * DEGREES_TO_RADIANS;
+    Vector w_net(w_x, w_y, w_z);
 
-    x_angle += y_angle * sin((get(GYROZ) - z_zero) * ANGULAR_RATE_TO_DISPLACEMENT_CONVERSION * t_delta * DEGREES_TO_RADIANS_CONVERSION);
-    y_angle -= x_angle * sin((get(GYROZ) - z_zero) * ANGULAR_RATE_TO_DISPLACEMENT_CONVERSION * t_delta * DEGREES_TO_RADIANS_CONVERSION);
+    // transform angular rate into a unit quaternion representing the rotation
+    double w_norm = w_net.norm();
+    double r_w = cos((t_delta * w_norm) / 2);
+    double r_x = (sin((t_delta * w_norm) / 2) * w_x) / w_norm;
+    double r_y = (sin((t_delta * w_norm) / 2) * w_y) / w_norm;
+    double r_z = (sin((t_delta * w_norm) / 2) * w_z) / w_norm;
+    Quaternion rotation(r_w, r_x, r_y, r_z);
+
+    // apply rotation
+    orientation = Quaternion::product(orientation, rotation);
+
+    // normalize, noise reduction
+    orientation.normalize();
+
+    // calculate roll pitch and yaw
+    pitch = orientation.pitch() / DEGREES_TO_RADIANS;
+    roll = orientation.roll() / DEGREES_TO_RADIANS;
+    yaw = orientation.yaw() / DEGREES_TO_RADIANS;
+
+    // x_angle += (get(GYROX) - x_zero) * ANGULAR_RATE_TO_DISPLACEMENT_CONVERSION * t_delta;
+    // y_angle += (get(GYROY) - y_zero) * ANGULAR_RATE_TO_DISPLACEMENT_CONVERSION * t_delta;
+    // z_angle += (get(GYROZ) - z_zero) * ANGULAR_RATE_TO_DISPLACEMENT_CONVERSION * t_delta;
+
+    // x_angle += y_angle * sin((get(GYROZ) - z_zero) * ANGULAR_RATE_TO_DISPLACEMENT_CONVERSION * t_delta * DEGREES_TO_RADIANS_CONVERSION);
+    // y_angle -= x_angle * sin((get(GYROZ) - z_zero) * ANGULAR_RATE_TO_DISPLACEMENT_CONVERSION * t_delta * DEGREES_TO_RADIANS_CONVERSION);
   }
 }
 
-double Imu::angle_x() {
-  return x_angle;
+// double Imu::angle_x() {
+//   return angle_x;
+// }
+
+// double Imu::angle_y() {
+//   return angle_y;
+// }
+
+double Imu::get_roll() {
+  return roll;
 }
 
-double Imu::angle_y() {
-  return y_angle;
+double Imu::get_pitch() {
+  return pitch;
+}
+
+double Imu::get_yaw() {
+  return yaw;
+}
+
+Imu::Quaternion::Quaternion(double w, double x, double y, double z) 
+  : w(w), x(x), y(y), z(z) { }
+
+Imu::Quaternion Imu::Quaternion::product(Quaternion p, Quaternion q) {
+  double w = p.w * q.w - p.x * q.x - p.y * q.y - p.z * q.z;
+  double x = p.w * q.x + p.x * q.w + p.y * q.z - p.z * q.y;
+  double y = p.w * q.y - p.x * q.z + p.y * q.w + p.z * q.x;
+  double z = p.w * q.z + p.x * q.y - p.y * q.x + p.z * q.w;
+  
+  Quaternion result(w, x, y, z);
+
+  return result;
+}
+
+double Imu::Quaternion::norm() {
+  return sqrt(w * w + x * x + y * y + z * z);
+}
+
+void Imu::Quaternion::normalize() {
+  double l = norm();
+  w /= l;
+  x /= l;
+  y /= l;
+  x /= l;
+}
+
+void Imu::Quaternion::conjugate() {
+  x *= -1;
+  y *= -1;
+  z *= -1;
+}
+
+double Imu::Quaternion::pitch() {
+  return atan2(2 * y * w - 2 * x * z, 1 - 2 * y * y - 2 * z * z);
+}
+
+double Imu::Quaternion::roll() {
+  return atan2(2 * x * w - 2 * y * z, 1 - 2 * x * x - 2 * z * z);
+}
+
+double Imu::Quaternion::yaw() {
+  return asin(2 * x * y + 2 * z * w);
+}
+
+Imu::Vector::Vector(double x, double y, double z)
+  : x(x), y(y), z(z) { }
+
+double Imu::Vector::norm() {
+  return sqrt(x * x + y * y + z * z);
+}
+
+void Imu::Vector::rotate(Quaternion q) {
+  Quaternion r(0, x, y, z);
+  
+  Quaternion q_i = q;
+  q_i.conjugate();
+  
+  Quaternion result = Quaternion::product(Quaternion::product(q, r), q_i);
+  
+  x = result.x;
+  y = result.y;
+  z = result.z;
 }

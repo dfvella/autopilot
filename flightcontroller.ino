@@ -1,6 +1,6 @@
 #include "imu.h"
 
-#define CALIBRATE_ACCELEROMETER
+//#define CALIBRATE_ACCELEROMETER
 
 Imu imu(13);
 
@@ -16,7 +16,9 @@ void setup() {
 
 void loop() {
   imu.run();
-  Serial.print(imu.angle_x());
+  Serial.print(imu.get_roll());
   Serial.print(" ");
-  Serial.println(imu.angle_y());
+  Serial.print(imu.get_pitch());
+  Serial.print(" ");
+  Serial.println(imu.get_yaw());
 }
