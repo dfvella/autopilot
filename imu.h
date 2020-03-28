@@ -10,9 +10,9 @@
 #define GYRO_CALIBRATION_READINGS 1000
 #define ACCEL_CALIBRATION_READINGS 5000
 
-#define ACCELX_LEVEL_READING 485
-#define ACCELY_LEVEL_READING -138
-#define ACCELZ_LEVEL_READING -3081
+#define ACCELX_LEVEL_READING 139
+#define ACCELY_LEVEL_READING -160
+#define ACCELZ_LEVEL_READING 1157
 
 #define ANGULAR_RATE_TO_DISPLACEMENT_CONVERSION 0.0152671756 // 1 / 65.5
 #define DEGREES_TO_RADIANS_CONVERSION 0.01745329 
@@ -56,6 +56,7 @@ class Mpu6050 {
     static constexpr int GYROZ = 6;
 
     static constexpr double TICKS_PER_DEGREE = 0.0152671756;
+    static constexpr double TICKS_PER_G = 4096.0;
 
   private:
     int data[7];
@@ -106,6 +107,7 @@ class Imu : public Mpu6050 {
 
     Quaternion orientation;
     double roll, pitch, yaw;
+    double w_x_prev, w_y_prev, w_z_prev;
 
     double x_angle, y_angle, z_angle;
     double x_angle_prev, y_angle_prev, z_angle_prev;

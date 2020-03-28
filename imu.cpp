@@ -127,7 +127,7 @@ void Imu::calibrate_accel() {
   Serial.print(" y: ");
   Serial.print(y);
   Serial.print(" z: ");
-  Serial.print(z);
+  Serial.print(z - TICKS_PER_G);
   Serial.println();
 }
 
@@ -138,16 +138,25 @@ void Imu::run() {
   if (start) {
     start = false;
     timer = micros();
+
+    w_x_prev = get(GYROX);
+    w_y_prev = get(GYROY);
+    w_z_prev = get(GYROZ);
   }
   else {
     double t_delta = (micros() - timer) / 1000000.0; // seconds
     timer = micros();
 
     // create 3D vector of net angular rate
-    double w_x = (get(GYROX) - x_zero) * TICKS_PER_DEGREE * DEGREES_TO_RADIANS;
-    double w_y = (get(GYROY) - y_zero) * TICKS_PER_DEGREE * DEGREES_TO_RADIANS;
-    double w_z = (get(GYROZ) - z_zero) * TICKS_PER_DEGREE * DEGREES_TO_RADIANS;
+    double w_x = (((get(GYROX) + w_x_prev) / 2) - x_zero) * TICKS_PER_DEGREE * DEGREES_TO_RADIANS;
+    double w_y = (((get(GYROY) + w_y_prev) / 2) - y_zero) * TICKS_PER_DEGREE * DEGREES_TO_RADIANS;
+    double w_z = (((get(GYROZ) + w_z_prev) / 2) - z_zero) * TICKS_PER_DEGREE * DEGREES_TO_RADIANS;
     Vector w_net(w_x, w_y, w_z);
+
+    // save the current gyro data as the previous data for next iteration
+    w_x_prev = get(GYROX);
+    w_y_prev = get(GYROY);
+    w_z_prev = get(GYROZ);
 
     // transform angular rate into a unit quaternion representing the rotation
     double w_norm = w_net.norm();
