@@ -75,6 +75,10 @@ void Imu::calibrate() {
   x_zero = 0;
   y_zero = 0;
   z_zero = 0;
+
+  double accel_x = 0;
+  double accel_z = 0;
+  double accel_y = 0;
   
   for (int i = 0; i < GYRO_CALIBRATION_READINGS; ++i) {
     while (micros() - timer < 4000);
@@ -86,6 +90,10 @@ void Imu::calibrate() {
     y_zero += get(GYROY);
     z_zero += get(GYROZ);
 
+    accel_x += get(ACCELX);
+    accel_y += get(ACCELY);
+    accel_z += get(ACCELZ);
+
     if (++count % 25 == 0) led_state = !led_state;
     digitalWrite(status_led, led_state); 
   }
@@ -93,9 +101,31 @@ void Imu::calibrate() {
   y_zero /= GYRO_CALIBRATION_READINGS;
   z_zero /= GYRO_CALIBRATION_READINGS;
 
-  x_angle = 0;
-  y_angle = 0; // needs to calculate using accel // add acceleration calibration
-  z_angle = 0;
+  accel_x /= GYRO_CALIBRATION_READINGS;
+  accel_y /= GYRO_CALIBRATION_READINGS;
+  accel_z /= GYRO_CALIBRATION_READINGS;
+
+  accel_x -= ACCELX_LEVEL_READING;
+  accel_y -= ACCELY_LEVEL_READING;
+  accel_z -= ACCELZ_LEVEL_READING;
+
+  #ifdef GRAVITY_ZERO
+  Vector net_accel(accel_x, accel_y, accel_z);
+  double accel_angle_x = asin(accel_y / net_accel.norm()) * (1 / RADIANS_PER_DEGREE);
+  double accel_angle_y = asin(accel_x / net_accel.norm()) * (1 / RADIANS_PER_DEGREE) * -1;
+
+  Quaternion initial_roll(cos(accel_angle_x * RADIANS_PER_DEGREE * 0.5), 
+                          sin(accel_angle_x * RADIANS_PER_DEGREE * 0.5), 0.0001, 0.0001);
+
+  orientation = Quaternion::product(orientation, initial_roll);
+  orientation.normalize();
+
+  Quaternion initial_pitch(cos(accel_angle_y * RADIANS_PER_DEGREE * 0.5), 0.0001, 
+                            0.0001, sin(accel_angle_y * RADIANS_PER_DEGREE * 0.5));
+
+  orientation = Quaternion::product(orientation, initial_pitch);
+  orientation.normalize();
+  #endif
 }
 
 void Imu::calibrate_accel() {
@@ -148,9 +178,9 @@ void Imu::run() {
     timer = micros();
 
     // create 3D vector of net angular rate
-    double w_x = (((get(GYROX) + w_x_prev) / 2) - x_zero) * TICKS_PER_DEGREE * DEGREES_TO_RADIANS;
-    double w_y = (((get(GYROY) + w_y_prev) / 2) - y_zero) * TICKS_PER_DEGREE * DEGREES_TO_RADIANS;
-    double w_z = (((get(GYROZ) + w_z_prev) / 2) - z_zero) * TICKS_PER_DEGREE * DEGREES_TO_RADIANS;
+    double w_x = (((get(GYROX) + w_x_prev) / 2) - x_zero) * TICKS_PER_DEGREE * RADIANS_PER_DEGREE;
+    double w_y = (((get(GYROY) + w_y_prev) / 2) - y_zero) * TICKS_PER_DEGREE * RADIANS_PER_DEGREE;
+    double w_z = (((get(GYROZ) + w_z_prev) / 2) - z_zero) * TICKS_PER_DEGREE * RADIANS_PER_DEGREE;
     Vector w_net(w_x, w_y, w_z);
 
     // save the current gyro data as the previous data for next iteration
@@ -173,26 +203,11 @@ void Imu::run() {
     orientation.normalize();
 
     // calculate roll pitch and yaw
-    pitch = orientation.pitch() / DEGREES_TO_RADIANS;
-    roll = orientation.roll() / DEGREES_TO_RADIANS;
-    yaw = orientation.yaw() / DEGREES_TO_RADIANS;
-
-    // x_angle += (get(GYROX) - x_zero) * ANGULAR_RATE_TO_DISPLACEMENT_CONVERSION * t_delta;
-    // y_angle += (get(GYROY) - y_zero) * ANGULAR_RATE_TO_DISPLACEMENT_CONVERSION * t_delta;
-    // z_angle += (get(GYROZ) - z_zero) * ANGULAR_RATE_TO_DISPLACEMENT_CONVERSION * t_delta;
-
-    // x_angle += y_angle * sin((get(GYROZ) - z_zero) * ANGULAR_RATE_TO_DISPLACEMENT_CONVERSION * t_delta * DEGREES_TO_RADIANS_CONVERSION);
-    // y_angle -= x_angle * sin((get(GYROZ) - z_zero) * ANGULAR_RATE_TO_DISPLACEMENT_CONVERSION * t_delta * DEGREES_TO_RADIANS_CONVERSION);
+    pitch = orientation.pitch() / RADIANS_PER_DEGREE;
+    roll = orientation.roll() / RADIANS_PER_DEGREE;
+    yaw = orientation.yaw() / RADIANS_PER_DEGREE;
   }
 }
-
-// double Imu::angle_x() {
-//   return angle_x;
-// }
-
-// double Imu::angle_y() {
-//   return angle_y;
-// }
 
 double Imu::get_roll() {
   return roll;

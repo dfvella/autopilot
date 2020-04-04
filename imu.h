@@ -14,8 +14,7 @@
 #define ACCELY_LEVEL_READING -160
 #define ACCELZ_LEVEL_READING 1157
 
-#define ANGULAR_RATE_TO_DISPLACEMENT_CONVERSION 0.0152671756 // 1 / 65.5
-#define DEGREES_TO_RADIANS_CONVERSION 0.01745329 
+#define GRAVITY_ZERO
 
 //MPU6050 ADDRESSES
 #define MPU6050_I2C_ADDRESS 0x68
@@ -52,8 +51,8 @@ class Mpu6050 {
     static constexpr int ACCELZ = 2;
     static constexpr int TEMP = 3;
     static constexpr int GYROX = 4;
-    static constexpr int GYROY = 5;
-    static constexpr int GYROZ = 6;
+    static constexpr int GYROY = 6;
+    static constexpr int GYROZ = 5;
 
     static constexpr double TICKS_PER_DEGREE = 0.0152671756;
     static constexpr double TICKS_PER_G = 4096.0;
@@ -75,7 +74,7 @@ class Imu : public Mpu6050 {
     double get_pitch();
     double get_yaw();
 
-    static constexpr double DEGREES_TO_RADIANS = 0.01745329;
+    static constexpr double RADIANS_PER_DEGREE = 0.01745329;
 
   private:
     class Vector;
