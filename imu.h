@@ -93,16 +93,11 @@ class Imu : public Mpu6050 {
         friend class Vector;
     };
 
-    class Vector {
-      public:
-        Vector(double x, double y, double z);
-        void conjugate();
-        double norm();
-        void rotate(Quaternion q);
-        static Vector add(Vector v, Vector u);
-      private:
-        double x, y, z;
+    struct Vector {
+      double x, y, z;
     };
+
+    double norm(const Vector &v);
 
     Quaternion orientation;
     double roll, pitch, yaw;

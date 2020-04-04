@@ -110,9 +110,9 @@ void Imu::calibrate() {
   accel_z -= ACCELZ_LEVEL_READING;
 
   #ifdef GRAVITY_ZERO
-  Vector net_accel(accel_x, accel_y, accel_z);
-  double accel_angle_x = asin(accel_y / net_accel.norm()) * (1 / RADIANS_PER_DEGREE);
-  double accel_angle_y = asin(accel_x / net_accel.norm()) * (1 / RADIANS_PER_DEGREE) * -1;
+  Vector net_accel = { accel_x, accel_y, accel_z };
+  double accel_angle_x = asin(accel_y / norm(net_accel)) * (1 / RADIANS_PER_DEGREE);
+  double accel_angle_y = asin(accel_x / norm(net_accel)) * (1 / RADIANS_PER_DEGREE) * -1;
 
   Quaternion initial_roll(cos(accel_angle_x * RADIANS_PER_DEGREE * 0.5), 
                           sin(accel_angle_x * RADIANS_PER_DEGREE * 0.5), 0.0001, 0.0001);
@@ -181,7 +181,7 @@ void Imu::run() {
     double w_x = (((get(GYROX) + w_x_prev) / 2) - x_zero) * TICKS_PER_DEGREE * RADIANS_PER_DEGREE;
     double w_y = (((get(GYROY) + w_y_prev) / 2) - y_zero) * TICKS_PER_DEGREE * RADIANS_PER_DEGREE;
     double w_z = (((get(GYROZ) + w_z_prev) / 2) - z_zero) * TICKS_PER_DEGREE * RADIANS_PER_DEGREE;
-    Vector w_net(w_x, w_y, w_z);
+    Vector w_net = { w_x, w_y, w_z };
 
     // save the current gyro data as the previous data for next iteration
     w_x_prev = get(GYROX);
@@ -189,7 +189,7 @@ void Imu::run() {
     w_z_prev = get(GYROZ);
 
     // transform angular rate into a unit quaternion representing the rotation
-    double w_norm = w_net.norm();
+    double w_norm = norm(w_net);
     double r_w = cos((t_delta * w_norm) / 2);
     double r_x = (sin((t_delta * w_norm) / 2) * w_x) / w_norm;
     double r_y = (sin((t_delta * w_norm) / 2) * w_y) / w_norm;
@@ -253,34 +253,18 @@ void Imu::Quaternion::conjugate() {
   z *= -1;
 }
 
-double Imu::Quaternion::pitch() {
-  return atan2(2 * y * w - 2 * x * z, 1 - 2 * y * y - 2 * z * z);
-}
-
 double Imu::Quaternion::roll() {
-  return atan2(2 * x * w - 2 * y * z, 1 - 2 * x * x - 2 * z * z);
+  return atan2(2 * x * w - 2 * y * z, 1 - 2 * x * x - 2 * z * z) * -1;
 }
 
-double Imu::Quaternion::yaw() {
+double Imu::Quaternion::pitch() {
   return asin(2 * x * y + 2 * z * w);
 }
 
-Imu::Vector::Vector(double x, double y, double z)
-  : x(x), y(y), z(z) { }
-
-double Imu::Vector::norm() {
-  return sqrt(x * x + y * y + z * z);
+double Imu::Quaternion::yaw() {
+  return atan2(2 * y * w - 2 * x * z, 1 - 2 * y * y - 2 * z * z) * -1;
 }
 
-void Imu::Vector::rotate(Quaternion q) {
-  Quaternion r(0, x, y, z);
-  
-  Quaternion q_i = q;
-  q_i.conjugate();
-  
-  Quaternion result = Quaternion::product(Quaternion::product(q, r), q_i);
-  
-  x = result.x;
-  y = result.y;
-  z = result.z;
+double Imu::norm(const Vector &v) {
+  return sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
 }
