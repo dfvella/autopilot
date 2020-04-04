@@ -51,8 +51,8 @@ class Mpu6050 {
     static constexpr int ACCELZ = 2;
     static constexpr int TEMP = 3;
     static constexpr int GYROX = 4;
-    static constexpr int GYROY = 6;
-    static constexpr int GYROZ = 5;
+    static constexpr int GYROY = 5;
+    static constexpr int GYROZ = 6;
 
     static constexpr double TICKS_PER_DEGREE = 0.0152671756;
     static constexpr double TICKS_PER_G = 4096.0;

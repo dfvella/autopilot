@@ -37,7 +37,7 @@ int Mpu6050::get(int val) {
 }
 
 Imu::Imu(int led_pin) : status_led(led_pin), Mpu6050(), 
-  orientation(Quaternion(1, 0.0001, 0.0001, 0.0001)) { }
+  orientation(Quaternion(0.7071, 0.7071, 0.0001, 0.0001)) { }
 
 void Imu::calibrate() {
   begin();
@@ -121,7 +121,7 @@ void Imu::calibrate() {
   orientation.normalize();
 
   Quaternion initial_pitch(cos(accel_angle_y * RADIANS_PER_DEGREE * 0.5), 0.0001, 
-                            0.0001, sin(accel_angle_y * RADIANS_PER_DEGREE * 0.5));
+                            sin(accel_angle_y * RADIANS_PER_DEGREE * 0.5), 0.0001);
 
   orientation = Quaternion::product(orientation, initial_pitch);
   orientation.normalize();
@@ -203,9 +203,9 @@ void Imu::run() {
     orientation.normalize();
 
     // calculate roll pitch and yaw
-    pitch = orientation.pitch() / RADIANS_PER_DEGREE;
-    roll = orientation.roll() / RADIANS_PER_DEGREE;
-    yaw = orientation.yaw() / RADIANS_PER_DEGREE;
+    pitch = orientation.pitch();
+    roll = orientation.roll();
+    yaw = orientation.yaw();
   }
 }
 
@@ -254,15 +254,17 @@ void Imu::Quaternion::conjugate() {
 }
 
 double Imu::Quaternion::roll() {
-  return atan2(2 * x * w - 2 * y * z, 1 - 2 * x * x - 2 * z * z) * -1;
+  double result = atan2(2 * x * w - 2 * y * z, 1 - 2 * x * x - 2 * z * z) 
+                                                * -1 / RADIANS_PER_DEGREE + 90;
+  return result > 180 ? result - 360 : result;
 }
 
 double Imu::Quaternion::pitch() {
-  return asin(2 * x * y + 2 * z * w);
+  return asin(2 * x * y + 2 * z * w) / RADIANS_PER_DEGREE;
 }
 
 double Imu::Quaternion::yaw() {
-  return atan2(2 * y * w - 2 * x * z, 1 - 2 * y * y - 2 * z * z) * -1;
+  return atan2(2 * y * w - 2 * x * z, 1 - 2 * y * y - 2 * z * z) / RADIANS_PER_DEGREE;
 }
 
 double Imu::norm(const Vector &v) {
