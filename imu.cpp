@@ -36,8 +36,12 @@ int Mpu6050::get(int val) {
   return data[val];
 }
 
-Imu::Imu(int led_pin) : status_led(led_pin), Mpu6050(), 
-  orientation(Quaternion(0.7071, 0.7071, 0.0001, 0.0001)) { }
+Imu::Imu(int led_pin) : status_led(led_pin), Mpu6050() {
+  orientation.w = 0.7071;
+  orientation.x = 0.7071;
+  orientation.y = 0.0001;
+  orientation.z = 0.0001;
+}
 
 void Imu::calibrate() {
   begin();
@@ -114,23 +118,31 @@ void Imu::calibrate() {
   double accel_angle_x = asin(accel_y / norm(net_accel)) * (1 / RADIANS_PER_DEGREE);
   double accel_angle_y = asin(accel_x / norm(net_accel)) * (1 / RADIANS_PER_DEGREE) * -1;
 
-  Quaternion initial_roll(cos(accel_angle_x * RADIANS_PER_DEGREE * 0.5), 
-                          sin(accel_angle_x * RADIANS_PER_DEGREE * 0.5), 0.0001, 0.0001);
+  Quaternion initial_roll = {
+    cos(accel_angle_x * RADIANS_PER_DEGREE * 0.5), 
+    sin(accel_angle_x * RADIANS_PER_DEGREE * 0.5),
+    0.0001,
+    0.0001
+  };
 
-  orientation = Quaternion::product(orientation, initial_roll);
-  orientation.normalize();
+  orientation = product(orientation, initial_roll);
+  normalize(orientation);
 
-  Quaternion initial_pitch(cos(accel_angle_y * RADIANS_PER_DEGREE * 0.5), 0.0001, 
-                            sin(accel_angle_y * RADIANS_PER_DEGREE * 0.5), 0.0001);
+  Quaternion initial_pitch = {
+    cos(accel_angle_y * RADIANS_PER_DEGREE * 0.5), 
+    0.0001, 
+    sin(accel_angle_y * RADIANS_PER_DEGREE * 0.5), 
+    0.0001 
+  };
 
-  orientation = Quaternion::product(orientation, initial_pitch);
-  orientation.normalize();
+  orientation = product(orientation, initial_pitch);
+  normalize(orientation);
   #endif
 }
 
 void Imu::calibrate_accel() {
   calibrate();
-  Serial.println("Calibrating Accelerometer");
+  Serial.println("Calibrating Accelerometer...");
 
   double x = 0;
   double y = 0;
@@ -168,103 +180,94 @@ void Imu::run() {
   if (start) {
     start = false;
     timer = micros();
-
-    w_x_prev = get(GYROX);
-    w_y_prev = get(GYROY);
-    w_z_prev = get(GYROZ);
   }
   else {
     double t_delta = (micros() - timer) / 1000000.0; // seconds
     timer = micros();
 
-    // create 3D vector of net angular rate
-    double w_x = (((get(GYROX) + w_x_prev) / 2) - x_zero) * TICKS_PER_DEGREE * RADIANS_PER_DEGREE;
-    double w_y = (((get(GYROY) + w_y_prev) / 2) - y_zero) * TICKS_PER_DEGREE * RADIANS_PER_DEGREE;
-    double w_z = (((get(GYROZ) + w_z_prev) / 2) - z_zero) * TICKS_PER_DEGREE * RADIANS_PER_DEGREE;
-    Vector w_net = { w_x, w_y, w_z };
-
-    // save the current gyro data as the previous data for next iteration
-    w_x_prev = get(GYROX);
-    w_y_prev = get(GYROY);
-    w_z_prev = get(GYROZ);
+    // create 3D vector of net angular velocity and finds its magnitude
+    Vector w;
+    w.x = (get(GYROX) - x_zero) * TICKS_PER_DEGREE * RADIANS_PER_DEGREE;
+    w.y = (get(GYROY) - y_zero) * TICKS_PER_DEGREE * RADIANS_PER_DEGREE;
+    w.z = (get(GYROZ) - z_zero) * TICKS_PER_DEGREE * RADIANS_PER_DEGREE;
+    double w_norm = norm(w);
 
     // transform angular rate into a unit quaternion representing the rotation
-    double w_norm = norm(w_net);
-    double r_w = cos((t_delta * w_norm) / 2);
-    double r_x = (sin((t_delta * w_norm) / 2) * w_x) / w_norm;
-    double r_y = (sin((t_delta * w_norm) / 2) * w_y) / w_norm;
-    double r_z = (sin((t_delta * w_norm) / 2) * w_z) / w_norm;
-    Quaternion rotation(r_w, r_x, r_y, r_z);
+    Quaternion rotation;
+    rotation.w = cos((t_delta * w_norm) / 2);
+    rotation.x = (sin((t_delta * w_norm) / 2) * w.x) / w_norm;
+    rotation.y = (sin((t_delta * w_norm) / 2) * w.y) / w_norm;
+    rotation.z = (sin((t_delta * w_norm) / 2) * w.z) / w_norm;
 
     // apply rotation
-    orientation = Quaternion::product(orientation, rotation);
+    orientation = product(orientation, rotation);
 
     // normalize, noise reduction
-    orientation.normalize();
+    normalize(orientation);
 
-    // calculate roll pitch and yaw
-    pitch = orientation.pitch();
-    roll = orientation.roll();
-    yaw = orientation.yaw();
+    // calculate roll, pitch, and yaw angles
+    x_angle = atan2(2 * orientation.x * orientation.w - 2 * orientation.y * orientation.z, 
+              1 - 2 * orientation.x * orientation.x - 2 * orientation.z * orientation.z);
+
+    y_angle = asin(2 * orientation.x * orientation.y + 2 * orientation.z * orientation.w);
+
+    z_angle = atan2(2 * orientation.y * orientation.w - 2 * orientation.x * orientation.z, 
+              1 - 2 * orientation.y * orientation.y - 2 * orientation.z * orientation.z);
+
+    // convert roll, pitch, and yaw angles to degrees
+    x_angle /= RADIANS_PER_DEGREE;
+    y_angle /= RADIANS_PER_DEGREE;
+    z_angle /= RADIANS_PER_DEGREE;
+
+    // correct roll axis offset due to Mpu6050 orientation in aircraft
+    if (x_angle < -90) x_angle += 270;
+    else x_angle -= 90;
+
+    #ifdef INVERT_ROLL_AXIS
+    x_angle *= -1;
+    #endif    
+    #ifdef INVERT_PITCH_AXIS
+    y_angle *= -1;
+    #endif
+    #ifdef INVERT_YAW_AXIS
+    z_angle *= -1;
+    #endif
   }
 }
 
-double Imu::get_roll() {
-  return roll;
+double Imu::roll() {
+  return x_angle;
 }
 
-double Imu::get_pitch() {
-  return pitch;
+double Imu::pitch() {
+  return y_angle;
 }
 
-double Imu::get_yaw() {
-  return yaw;
+double Imu::yaw() {
+  return z_angle;
 }
 
-Imu::Quaternion::Quaternion(double w, double x, double y, double z) 
-  : w(w), x(x), y(y), z(z) { }
-
-Imu::Quaternion Imu::Quaternion::product(Quaternion p, Quaternion q) {
-  double w = p.w * q.w - p.x * q.x - p.y * q.y - p.z * q.z;
-  double x = p.w * q.x + p.x * q.w + p.y * q.z - p.z * q.y;
-  double y = p.w * q.y - p.x * q.z + p.y * q.w + p.z * q.x;
-  double z = p.w * q.z + p.x * q.y - p.y * q.x + p.z * q.w;
+Imu::Quaternion Imu::product(const Quaternion &p, const Quaternion &q) {
+  Quaternion result;
   
-  Quaternion result(w, x, y, z);
+  result.w = p.w * q.w - p.x * q.x - p.y * q.y - p.z * q.z;
+  result.x = p.w * q.x + p.x * q.w + p.y * q.z - p.z * q.y;
+  result.y = p.w * q.y - p.x * q.z + p.y * q.w + p.z * q.x;
+  result.z = p.w * q.z + p.x * q.y - p.y * q.x + p.z * q.w;
 
   return result;
 }
 
-double Imu::Quaternion::norm() {
-  return sqrt(w * w + x * x + y * y + z * z);
+double Imu::norm(const Quaternion &q) {
+  return sqrt(q.w * q.w + q.x * q.x + q.y * q.y + q.z * q.z);
 }
 
-void Imu::Quaternion::normalize() {
-  double l = norm();
-  w /= l;
-  x /= l;
-  y /= l;
-  x /= l;
-}
-
-void Imu::Quaternion::conjugate() {
-  x *= -1;
-  y *= -1;
-  z *= -1;
-}
-
-double Imu::Quaternion::roll() {
-  double result = atan2(2 * x * w - 2 * y * z, 1 - 2 * x * x - 2 * z * z) 
-                                                * -1 / RADIANS_PER_DEGREE + 90;
-  return result > 180 ? result - 360 : result;
-}
-
-double Imu::Quaternion::pitch() {
-  return asin(2 * x * y + 2 * z * w) / RADIANS_PER_DEGREE;
-}
-
-double Imu::Quaternion::yaw() {
-  return atan2(2 * y * w - 2 * x * z, 1 - 2 * y * y - 2 * z * z) / RADIANS_PER_DEGREE;
+void Imu::normalize(Quaternion &q) {
+  double l = norm(q);
+  q.w /= l;
+  q.x /= l;
+  q.y /= l;
+  q.x /= l;
 }
 
 double Imu::norm(const Vector &v) {

@@ -16,6 +16,10 @@
 
 #define GRAVITY_ZERO
 
+#define INVERT_ROLL_AXIS
+//#define INVERT_PITCH_AXIS
+//#define INVERT_YAW_AXIS
+
 //MPU6050 ADDRESSES
 #define MPU6050_I2C_ADDRESS 0x68
 #define MPU6050_POWER_MANAGEMENT_REGISTER 0x6B 
@@ -70,28 +74,20 @@ class Imu : public Mpu6050 {
     double angle_x();
     double angle_y();
 
-    double get_roll();
-    double get_pitch();
-    double get_yaw();
+    double roll();
+    double pitch();
+    double yaw();
 
     static constexpr double RADIANS_PER_DEGREE = 0.01745329;
 
   private:
-    class Vector;
-    class Quaternion {
-      public:
-        Quaternion(double w, double x, double y, double z);
-        static Quaternion product(Quaternion p, Quaternion q);
-        double norm();
-        void normalize();
-        void conjugate();
-        double roll();
-        double pitch();
-        double yaw();
-      private:
+    struct Quaternion {
         double w, x, y, z;
-        friend class Vector;
     };
+
+    Quaternion product(const Quaternion &p, const Quaternion &q);
+    double norm(const Quaternion &q);
+    void normalize(Quaternion &q); // move into product?
 
     struct Vector {
       double x, y, z;
@@ -100,11 +96,7 @@ class Imu : public Mpu6050 {
     double norm(const Vector &v);
 
     Quaternion orientation;
-    double roll, pitch, yaw;
-    double w_x_prev, w_y_prev, w_z_prev;
-
     double x_angle, y_angle, z_angle;
-    double x_angle_prev, y_angle_prev, z_angle_prev;
     
     double x_zero, y_zero, z_zero;
 

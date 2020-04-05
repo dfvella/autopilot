@@ -2,23 +2,26 @@
 
 //#define CALIBRATE_ACCELEROMETER
 
+unsigned long timer;
+
 Imu imu(13);
 
 void setup() {
   Serial.begin(9600);
   #ifdef CALIBRATE_ACCELEROMETER
   imu.calibrate_accel();
-  #endif 
-  #ifndef CALIBRATE_ACCELEROMETER
+  #else
   imu.calibrate();
   #endif
 }
 
 void loop() {
+  // timer = micros();
   imu.run();
-  Serial.print(imu.get_roll());
+  // Serial.println(micros() - timer);
+  Serial.print(imu.roll());
   Serial.print(" ");
-  Serial.print(imu.get_pitch());
+  Serial.print(imu.pitch());
   Serial.print(" ");
-  Serial.println(imu.get_yaw());
+  Serial.println(imu.yaw());
 }
