@@ -43,36 +43,12 @@
 //#define ACCELEROMETER_ACCURACY 0b00011000       // +/- 16 g's
 
 
-class Mpu6050 {
+class Imu {
   public:
-    Mpu6050();
-    void begin();
-    void fetch();
-    int get(int val);
-
-    static constexpr int ACCELX = 0;
-    static constexpr int ACCELY = 1;
-    static constexpr int ACCELZ = 2;
-    static constexpr int TEMP = 3;
-    static constexpr int GYROX = 4;
-    static constexpr int GYROY = 5;
-    static constexpr int GYROZ = 6;
-
-    static constexpr double TICKS_PER_DEGREE = 0.0152671756;
-    static constexpr double TICKS_PER_G = 4096.0;
-
-  private:
-    int data[7];
-};
-
-class Imu : public Mpu6050 {
-  public:
-    Imu(int led_pin);
+    Imu();
     void calibrate();
     void calibrate_accel(); // place on level surface
     void run();
-    double angle_x();
-    double angle_y();
 
     double roll();
     double pitch();
@@ -81,18 +57,39 @@ class Imu : public Mpu6050 {
     static constexpr double RADIANS_PER_DEGREE = 0.01745329;
 
   private:
+    class Mpu6050 {
+      public:
+        Mpu6050();
+        void begin();
+        void fetch();
+        int get(int val);
+
+        static constexpr int ACCELX = 0;
+        static constexpr int ACCELY = 1;
+        static constexpr int ACCELZ = 2;
+        static constexpr int TEMP = 3;
+        static constexpr int GYROX = 4;
+        static constexpr int GYROY = 5;
+        static constexpr int GYROZ = 6;
+
+        static constexpr double TICKS_PER_DEGREE = 0.0152671756;
+        static constexpr double TICKS_PER_G = 4096.0;
+
+      private:
+        int data[7];
+    };
+
+    Mpu6050 mpu;
+
     struct Quaternion {
         double w, x, y, z;
     };
-
     Quaternion product(const Quaternion &p, const Quaternion &q);
     double norm(const Quaternion &q);
-    void normalize(Quaternion &q); // move into product?
 
     struct Vector {
       double x, y, z;
     };
-
     double norm(const Vector &v);
 
     Quaternion orientation;
@@ -102,7 +99,7 @@ class Imu : public Mpu6050 {
 
     unsigned long timer;
 
-    int status_led;
+    int status_led = 13;
     bool led_state;
 };
 

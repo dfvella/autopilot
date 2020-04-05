@@ -4,7 +4,7 @@
 
 unsigned long timer;
 
-Imu imu(13);
+Imu imu;
 
 void setup() {
   Serial.begin(9600);

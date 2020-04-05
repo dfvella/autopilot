@@ -1,8 +1,8 @@
 #include "imu.h"
 
-Mpu6050::Mpu6050() { }
+Imu::Mpu6050::Mpu6050() { }
 
-void Mpu6050::begin() {
+void Imu::Mpu6050::begin() {
   Wire.beginTransmission(MPU6050_I2C_ADDRESS);
   Wire.write(MPU6050_POWER_MANAGEMENT_REGISTER);
   Wire.write(MPU_6050_POWER_ON);
@@ -19,7 +19,7 @@ void Mpu6050::begin() {
   Wire.endTransmission();
 }
 
-void Mpu6050::fetch() {
+void Imu::Mpu6050::fetch() {
   Wire.beginTransmission(MPU6050_I2C_ADDRESS);
   Wire.write(MPU6050_ACCEL_XOUT_H_REGISTER);
   Wire.endTransmission();
@@ -32,11 +32,11 @@ void Mpu6050::fetch() {
   }
 }
 
-int Mpu6050::get(int val) {
+int Imu::Mpu6050::get(int val) {
   return data[val];
 }
 
-Imu::Imu(int led_pin) : status_led(led_pin), Mpu6050() {
+Imu::Imu() {
   orientation.w = 0.7071;
   orientation.x = 0.7071;
   orientation.y = 0.0001;
@@ -44,7 +44,7 @@ Imu::Imu(int led_pin) : status_led(led_pin), Mpu6050() {
 }
 
 void Imu::calibrate() {
-  begin();
+  mpu.begin();
 
   pinMode(status_led, OUTPUT);
 
@@ -56,15 +56,15 @@ void Imu::calibrate() {
     while (micros() - timer < 4000);
     timer = micros();
 
-    fetch();
+    mpu.fetch();
 
-    int x_diff = abs(get(ACCELX) - x_prev);
-    int y_diff = abs(get(ACCELY) - y_prev);
-    int z_diff = abs(get(ACCELZ) - z_prev);
+    int x_diff = abs(mpu.get(Mpu6050::ACCELX) - x_prev);
+    int y_diff = abs(mpu.get(Mpu6050::ACCELY) - y_prev);
+    int z_diff = abs(mpu.get(Mpu6050::ACCELZ) - z_prev);
 
-    x_prev = get(ACCELX);
-    y_prev = get(ACCELY);
-    z_prev = get(ACCELZ);
+    x_prev = mpu.get(Mpu6050::ACCELX);
+    y_prev = mpu.get(Mpu6050::ACCELY);
+    z_prev = mpu.get(Mpu6050::ACCELZ);
 
     if (x_diff < MIN_ACCEL_DIFF 
      && y_diff < MIN_ACCEL_DIFF 
@@ -88,15 +88,15 @@ void Imu::calibrate() {
     while (micros() - timer < 4000);
     timer = micros();
 
-    fetch();
+    mpu.fetch();
 
-    x_zero += get(GYROX);
-    y_zero += get(GYROY);
-    z_zero += get(GYROZ);
+    x_zero += mpu.get(Mpu6050::GYROX);
+    y_zero += mpu.get(Mpu6050::GYROY);
+    z_zero += mpu.get(Mpu6050::GYROZ);
 
-    accel_x += get(ACCELX);
-    accel_y += get(ACCELY);
-    accel_z += get(ACCELZ);
+    accel_x += mpu.get(Mpu6050::ACCELX);
+    accel_y += mpu.get(Mpu6050::ACCELY);
+    accel_z += mpu.get(Mpu6050::ACCELZ);
 
     if (++count % 25 == 0) led_state = !led_state;
     digitalWrite(status_led, led_state); 
@@ -126,7 +126,6 @@ void Imu::calibrate() {
   };
 
   orientation = product(orientation, initial_roll);
-  normalize(orientation);
 
   Quaternion initial_pitch = {
     cos(accel_angle_y * RADIANS_PER_DEGREE * 0.5), 
@@ -136,7 +135,6 @@ void Imu::calibrate() {
   };
 
   orientation = product(orientation, initial_pitch);
-  normalize(orientation);
   #endif
 }
 
@@ -154,11 +152,11 @@ void Imu::calibrate_accel() {
     while (micros() - timer < 4000);
     timer = micros();
 
-    fetch();
+    mpu.fetch();
 
-    x += get(ACCELX) / (float)ACCEL_CALIBRATION_READINGS;
-    y += get(ACCELY) / (float)ACCEL_CALIBRATION_READINGS;
-    z += get(ACCELZ) / (float)ACCEL_CALIBRATION_READINGS;
+    x += mpu.get(Mpu6050::ACCELX) / (float)ACCEL_CALIBRATION_READINGS;
+    y += mpu.get(Mpu6050::ACCELY) / (float)ACCEL_CALIBRATION_READINGS;
+    z += mpu.get(Mpu6050::ACCELZ) / (float)ACCEL_CALIBRATION_READINGS;
 
     if (++count % 25 == 0) led_state = !led_state;
     digitalWrite(status_led, led_state); 
@@ -169,12 +167,12 @@ void Imu::calibrate_accel() {
   Serial.print(" y: ");
   Serial.print(y);
   Serial.print(" z: ");
-  Serial.print(z - TICKS_PER_G);
+  Serial.print(z - Mpu6050::TICKS_PER_G);
   Serial.println();
 }
 
 void Imu::run() {
-  fetch();
+  mpu.fetch();
 
   static bool start = true;
   if (start) {
@@ -187,9 +185,9 @@ void Imu::run() {
 
     // create 3D vector of net angular velocity and finds its magnitude
     Vector w;
-    w.x = (get(GYROX) - x_zero) * TICKS_PER_DEGREE * RADIANS_PER_DEGREE;
-    w.y = (get(GYROY) - y_zero) * TICKS_PER_DEGREE * RADIANS_PER_DEGREE;
-    w.z = (get(GYROZ) - z_zero) * TICKS_PER_DEGREE * RADIANS_PER_DEGREE;
+    w.x = (mpu.get(Mpu6050::GYROX) - x_zero) * Mpu6050::TICKS_PER_DEGREE * RADIANS_PER_DEGREE;
+    w.y = (mpu.get(Mpu6050::GYROY) - y_zero) * Mpu6050::TICKS_PER_DEGREE * RADIANS_PER_DEGREE;
+    w.z = (mpu.get(Mpu6050::GYROZ) - z_zero) * Mpu6050::TICKS_PER_DEGREE * RADIANS_PER_DEGREE;
     double w_norm = norm(w);
 
     // transform angular rate into a unit quaternion representing the rotation
@@ -201,9 +199,6 @@ void Imu::run() {
 
     // apply rotation
     orientation = product(orientation, rotation);
-
-    // normalize, noise reduction
-    normalize(orientation);
 
     // calculate roll, pitch, and yaw angles
     x_angle = atan2(2 * orientation.x * orientation.w - 2 * orientation.y * orientation.z, 
@@ -255,19 +250,17 @@ Imu::Quaternion Imu::product(const Quaternion &p, const Quaternion &q) {
   result.y = p.w * q.y - p.x * q.z + p.y * q.w + p.z * q.x;
   result.z = p.w * q.z + p.x * q.y - p.y * q.x + p.z * q.w;
 
+  double l = norm(result);
+  result.w /= l;
+  result.x /= l;
+  result.y /= l;
+  result.x /= l;
+
   return result;
 }
 
 double Imu::norm(const Quaternion &q) {
   return sqrt(q.w * q.w + q.x * q.x + q.y * q.y + q.z * q.z);
-}
-
-void Imu::normalize(Quaternion &q) {
-  double l = norm(q);
-  q.w /= l;
-  q.x /= l;
-  q.y /= l;
-  q.x /= l;
 }
 
 double Imu::norm(const Vector &v) {
