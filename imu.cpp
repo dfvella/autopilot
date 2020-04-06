@@ -1,41 +1,5 @@
 #include "imu.h"
 
-Imu::Mpu6050::Mpu6050() { }
-
-void Imu::Mpu6050::begin() {
-  Wire.beginTransmission(MPU6050_I2C_ADDRESS);
-  Wire.write(MPU6050_POWER_MANAGEMENT_REGISTER);
-  Wire.write(MPU_6050_POWER_ON);
-  Wire.endTransmission();
-
-  Wire.beginTransmission(MPU6050_I2C_ADDRESS);
-  Wire.write(MPU6050_ACCELEROMETER_CONFIG_REGISTER);
-  Wire.write(ACCELEROMETER_ACCURACY);
-  Wire.endTransmission();
-
-  Wire.beginTransmission(MPU6050_I2C_ADDRESS);
-  Wire.write(MPU6050_GYRO_CONFIG_REGISTER);
-  Wire.write(GYRO_ACCURACY);
-  Wire.endTransmission();
-}
-
-void Imu::Mpu6050::fetch() {
-  Wire.beginTransmission(MPU6050_I2C_ADDRESS);
-  Wire.write(MPU6050_ACCEL_XOUT_H_REGISTER);
-  Wire.endTransmission();
-
-  Wire.requestFrom(MPU6050_I2C_ADDRESS, 14);
-  while(Wire.available() < 14);
-  
-  for (int* ptr = data; ptr < data + 7; ++ptr) {
-    *ptr = Wire.read()<<8|Wire.read();
-  }
-}
-
-int Imu::Mpu6050::get(int val) {
-  return data[val];
-}
-
 Imu::Imu() {
   orientation.w = 0.7071;
   orientation.x = 0.7071;
@@ -113,7 +77,7 @@ void Imu::calibrate() {
   accel_y -= ACCELY_LEVEL_READING;
   accel_z -= ACCELZ_LEVEL_READING;
 
-  #ifdef GRAVITY_ZERO
+  #ifdef GRAVITY_REFERENCED_ZERO
   Vector net_accel = { accel_x, accel_y, accel_z };
   double accel_angle_x = asin(accel_y / norm(net_accel)) * (1 / RADIANS_PER_DEGREE);
   double accel_angle_y = asin(accel_x / norm(net_accel)) * (1 / RADIANS_PER_DEGREE) * -1;
@@ -265,4 +229,40 @@ double Imu::norm(const Quaternion &q) {
 
 double Imu::norm(const Vector &v) {
   return sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+}
+
+Imu::Mpu6050::Mpu6050() { }
+
+void Imu::Mpu6050::begin() {
+  Wire.beginTransmission(MPU6050_I2C_ADDRESS);
+  Wire.write(MPU6050_POWER_MANAGEMENT_REGISTER);
+  Wire.write(MPU_6050_POWER_ON);
+  Wire.endTransmission();
+
+  Wire.beginTransmission(MPU6050_I2C_ADDRESS);
+  Wire.write(MPU6050_ACCELEROMETER_CONFIG_REGISTER);
+  Wire.write(ACCELEROMETER_ACCURACY);
+  Wire.endTransmission();
+
+  Wire.beginTransmission(MPU6050_I2C_ADDRESS);
+  Wire.write(MPU6050_GYRO_CONFIG_REGISTER);
+  Wire.write(GYRO_ACCURACY);
+  Wire.endTransmission();
+}
+
+void Imu::Mpu6050::fetch() {
+  Wire.beginTransmission(MPU6050_I2C_ADDRESS);
+  Wire.write(MPU6050_ACCEL_XOUT_H_REGISTER);
+  Wire.endTransmission();
+
+  Wire.requestFrom(MPU6050_I2C_ADDRESS, 14);
+  while(Wire.available() < 14);
+  
+  for (int* ptr = data; ptr < data + 7; ++ptr) {
+    *ptr = Wire.read()<<8|Wire.read();
+  }
+}
+
+int Imu::Mpu6050::get(int val) {
+  return data[val];
 }
