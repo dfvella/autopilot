@@ -14,7 +14,7 @@
 #define ACCELY_LEVEL_READING -160
 #define ACCELZ_LEVEL_READING 1157
 
-#define GRAVITY_ZERO
+#define GRAVITY_REFERENCED_ZERO
 
 #define INVERT_ROLL_AXIS
 //#define INVERT_PITCH_AXIS
@@ -45,23 +45,87 @@
 
 class Imu {
   public:
+    // constructor sets the intial orientation of the aircaft
     Imu();
+
+    // Waits until the accelermeter does not detect significant motion.
+    // Takes calibration readings to determine the gyroscope raw readings
+    // while at rest. Then, zeroes the gyroscope with reference to the
+    // gravitational force vector caclulated from the accelermeter data. 
     void calibrate();
-    void calibrate_accel(); // place on level surface
+
+    // Imediatly begins sampling accelermeter data and prints the average
+    // of these readings to the serial monitor. Mpu6050 should be placed
+    // on a level surface.
+    void calibrate_accel();
+
+    // Samples the MPU6050 data. Constructs a 3D vector representing the
+    // angular velcoity of the aircraft. Then, transforms this vector into
+    // a unit quaternion representing the rotation. Computes the product of 
+    // the last orientation and the rotation to determine the new orientation
+    // of the aircaft.
     void run();
 
+    // Returns the roll angle of the aircaft in degrees
+    //  -180 < roll < 180
     double roll();
+
+    // Returns the pitch angle of the aircaft in degrees
+    //  -90 < pitch < 90
     double pitch();
+
+    // Returns the yaw angle of the aircaft in degress
+    //  -180 < yaw < 180
     double yaw();
 
+  private:
     static constexpr double RADIANS_PER_DEGREE = 0.01745329;
 
-  private:
+    struct Quaternion {
+        double w, x, y, z;
+    };
+
+    // computes then returns the product of two quaternions
+    Quaternion product(const Quaternion &p, const Quaternion &q);
+
+    // computes then returns the norm/length of a quaternion
+    double norm(const Quaternion &q);
+
+    struct Vector {
+      double x, y, z;
+    };
+
+    // computes then returns the norm/length of a quaternion
+    double norm(const Vector &v);
+
+    // stores the aircaft's current orientation
+    Quaternion orientation;
+
+    // stores the aircaft's current roll, pitch, and yaw angles
+    double x_angle, y_angle, z_angle;
+    
+    // stores the gyroscope's raw angular velcoity readings while not moving
+    double x_zero, y_zero, z_zero;
+
+    // stores the system clock time when orientation was last determined
+    unsigned long timer;
+
+    // excapsulates the I2C interface with the Mpu6050 sensor
     class Mpu6050 {
       public:
         Mpu6050();
+
+        // Begins I2C communication with the Mpu6050 sensor. Configures the
+        // Mpu6050 power settings, gyroscope accuracy, and accelermeter
+        // accuracy.
         void begin();
+
+        // Opens I2C communication with the Mpu6050 sensor. Retreieves raw
+        // gyroscope, accelermeter, and temperature data and stores it in the 
+        // private int array data.
         void fetch();
+
+        // returns the requested raw Mpu6050 data
         int get(int val);
 
         static constexpr int ACCELX = 0;
@@ -80,24 +144,6 @@ class Imu {
     };
 
     Mpu6050 mpu;
-
-    struct Quaternion {
-        double w, x, y, z;
-    };
-    Quaternion product(const Quaternion &p, const Quaternion &q);
-    double norm(const Quaternion &q);
-
-    struct Vector {
-      double x, y, z;
-    };
-    double norm(const Vector &v);
-
-    Quaternion orientation;
-    double x_angle, y_angle, z_angle;
-    
-    double x_zero, y_zero, z_zero;
-
-    unsigned long timer;
 
     int status_led = 13;
     bool led_state;
