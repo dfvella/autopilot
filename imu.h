@@ -10,6 +10,9 @@
 #define GYRO_CALIBRATION_READINGS 1000
 #define ACCEL_CALIBRATION_READINGS 5000
 
+#define ACCEL_FILTER_GAIN 0.1
+#define DRIFT_FILTER_GAIN 0.98
+
 #define ACCELX_LEVEL_READING 139
 #define ACCELY_LEVEL_READING -160
 #define ACCELZ_LEVEL_READING 1157
@@ -101,8 +104,12 @@ class Imu {
     // stores the aircaft's current orientation
     Quaternion orientation;
 
-    // stores the aircaft's current roll, pitch, and yaw angles
+    // stores the aircaft's current roll, pitch, and yaw angles in degrees
     double x_angle, y_angle, z_angle;
+
+    // stores the aircaft's current roll and pitch angles in degrees
+    // caclulated only using the net acceleration on the aircaft
+    double x_angle_accel, y_angle_accel;
     
     // stores the gyroscope's raw angular velcoity readings while not moving
     double x_zero, y_zero, z_zero;

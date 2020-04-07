@@ -77,14 +77,14 @@ void Imu::calibrate() {
   accel_y -= ACCELY_LEVEL_READING;
   accel_z -= ACCELZ_LEVEL_READING;
 
-  #ifdef GRAVITY_REFERENCED_ZERO
   Vector net_accel = { accel_x, accel_y, accel_z };
-  double accel_angle_x = asin(accel_y / norm(net_accel)) * (1 / RADIANS_PER_DEGREE);
-  double accel_angle_y = asin(accel_x / norm(net_accel)) * (1 / RADIANS_PER_DEGREE) * -1;
+  x_angle_accel = asin(accel_y / norm(net_accel)) * (1 / RADIANS_PER_DEGREE);
+  y_angle_accel = asin(accel_x / norm(net_accel)) * (1 / RADIANS_PER_DEGREE) * -1;
 
+  #ifdef GRAVITY_REFERENCED_ZERO
   Quaternion initial_roll = {
-    cos(accel_angle_x * RADIANS_PER_DEGREE * 0.5), 
-    sin(accel_angle_x * RADIANS_PER_DEGREE * 0.5),
+    cos(x_angle_accel * RADIANS_PER_DEGREE * 0.5), 
+    sin(x_angle_accel * RADIANS_PER_DEGREE * 0.5),
     0.0001,
     0.0001
   };
@@ -92,9 +92,9 @@ void Imu::calibrate() {
   orientation = product(orientation, initial_roll);
 
   Quaternion initial_pitch = {
-    cos(accel_angle_y * RADIANS_PER_DEGREE * 0.5), 
+    cos(y_angle_accel * RADIANS_PER_DEGREE * 0.5), 
     0.0001, 
-    sin(accel_angle_y * RADIANS_PER_DEGREE * 0.5), 
+    sin(y_angle_accel * RADIANS_PER_DEGREE * 0.5), 
     0.0001 
   };
 
@@ -181,6 +181,25 @@ void Imu::run() {
     // correct roll axis offset due to Mpu6050 orientation in aircraft
     if (x_angle < -90) x_angle += 270;
     else x_angle -= 90;
+
+    // construct a 3 dimensional vector representint the net acceration on the aircraft
+    Vector net_accel; 
+    net_accel.x = (float)mpu.get(Mpu6050::ACCELX) - ACCELX_LEVEL_READING;
+    net_accel.y = (float)mpu.get(Mpu6050::ACCELY) - ACCELY_LEVEL_READING;
+    net_accel.z = (float)mpu.get(Mpu6050::ACCELZ) - ACCELZ_LEVEL_READING;
+
+    double accel_norm = norm(net_accel);
+    double x_angle_accel_current = asin(net_accel.y / accel_norm) * (1 / RADIANS_PER_DEGREE);
+    double y_angle_accel_current = asin(net_accel.x / accel_norm) * (1 / RADIANS_PER_DEGREE) * -1;
+
+    x_angle_accel = x_angle_accel * ACCEL_FILTER_GAIN + 
+                      x_angle_accel_current * (1 - ACCEL_FILTER_GAIN);
+
+    y_angle_accel = y_angle_accel * ACCEL_FILTER_GAIN + 
+                      y_angle_accel_current * (1 - ACCEL_FILTER_GAIN);
+
+    x_angle = x_angle * DRIFT_FILTER_GAIN + x_angle_accel * (1 - DRIFT_FILTER_GAIN);
+    y_angle = y_angle * DRIFT_FILTER_GAIN + y_angle_accel * (1 - DRIFT_FILTER_GAIN);
 
     #ifdef INVERT_ROLL_AXIS
     x_angle *= -1;
