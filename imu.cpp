@@ -1,13 +1,19 @@
 #include "imu.h"
 
+// constructor sets the intial orientation of the aircaft to level with the ground
 Imu::Imu() {
-  orientation.w = 0.7071;
-  orientation.x = 0.7071;
-  orientation.y = 0.0001;
-  orientation.z = 0.0001;
+  orientation.w = 0.70710;
+  orientation.x = 0.70710;
+  orientation.y = 0.00001;
+  orientation.z = 0.00001;
 }
 
+// Waits until the accelermeter does not detect significant motion.
+// Takes calibration readings to determine the gyroscope raw readings
+// while at rest. Then, zeroes the gyroscope with reference to the
+// gravitational force vector caclulated from the accelermeter data. 
 void Imu::calibrate() {
+
   mpu.begin();
 
   pinMode(status_led, OUTPUT);
@@ -15,13 +21,18 @@ void Imu::calibrate() {
   int count = 0, rest = 0;
   int x_prev, y_prev, z_prev;
   
+  // Wait until the derivative of the accerlation along each axis is below 
+  // the MIN_ACCEL_DIFF for the duration of the PRE_CALIBRATION_REST_TIMER
   timer = 0;
   while (rest < PRE_CALIBRATION_REST_TIMER) {
+
+    // regulate loop frequency at 250 hertz
     while (micros() - timer < 4000);
     timer = micros();
 
     mpu.fetch();
 
+    // compute the derivative of the acceration along each axis
     int x_diff = abs(mpu.get(Mpu6050::ACCELX) - x_prev);
     int y_diff = abs(mpu.get(Mpu6050::ACCELY) - y_prev);
     int z_diff = abs(mpu.get(Mpu6050::ACCELZ) - z_prev);
@@ -30,12 +41,15 @@ void Imu::calibrate() {
     y_prev = mpu.get(Mpu6050::ACCELY);
     z_prev = mpu.get(Mpu6050::ACCELZ);
 
+    // if the dirivative is higher than the threshold along any axis,
+    // set the counter back to 0
     if (x_diff < MIN_ACCEL_DIFF 
      && y_diff < MIN_ACCEL_DIFF 
      && z_diff < MIN_ACCEL_DIFF)
       ++rest;
     else rest = 0;
 
+    // slowly flash the led indicator
     if (++count % 200 == 0) led_state = !led_state;
     digitalWrite(status_led, led_state);
   }
@@ -48,7 +62,11 @@ void Imu::calibrate() {
   double accel_z = 0;
   double accel_y = 0;
   
+  // Sample the gyroscope and accelerometer the number of timer prescribed by
+  // GYRO_CALIBRATION_READINGS. Average all these raw values.
   for (int i = 0; i < GYRO_CALIBRATION_READINGS; ++i) {
+    
+    // regulate loop frequency at 250 hertz
     while (micros() - timer < 4000);
     timer = micros();
 
@@ -62,9 +80,12 @@ void Imu::calibrate() {
     accel_y += mpu.get(Mpu6050::ACCELY);
     accel_z += mpu.get(Mpu6050::ACCELZ);
 
+    // rapidly flash the led indicator
     if (++count % 25 == 0) led_state = !led_state;
     digitalWrite(status_led, led_state); 
   }
+
+  // Divide the sums buy the number of readings to get the average
   x_zero /= GYRO_CALIBRATION_READINGS;
   y_zero /= GYRO_CALIBRATION_READINGS;
   z_zero /= GYRO_CALIBRATION_READINGS;
@@ -73,15 +94,25 @@ void Imu::calibrate() {
   accel_y /= GYRO_CALIBRATION_READINGS;
   accel_z /= GYRO_CALIBRATION_READINGS;
 
+  // subtract the accelerometer level readings to get accurate accerlation values
   accel_x -= ACCELX_LEVEL_READING;
   accel_y -= ACCELY_LEVEL_READING;
   accel_z -= ACCELZ_LEVEL_READING;
 
+  // Construct a 3 dimensional vector modeling the net accleration of the aircraft
   Vector net_accel = { accel_x, accel_y, accel_z };
+
+  // Compute the roll pith angles using the net acceration vector
   x_angle_accel = asin(accel_y / norm(net_accel)) * (1 / RADIANS_PER_DEGREE);
   y_angle_accel = asin(accel_x / norm(net_accel)) * (1 / RADIANS_PER_DEGREE) * -1;
 
-  #ifdef GRAVITY_REFERENCED_ZERO
+  // If GRAVITY_REFERENCED_ZERO is enabled, set the intial orientation of the aircaft
+  // using the roll and pitch values computed from the net accerlation vector.
+  #ifdef ENABLE_GRAVITY_REFERENCED_ZERO
+
+  // Construct a unit quaternion representing the rotation around the roll axis required 
+  // to move the aircraft from a level position to its current angle calculated from
+  // the net acceleration vector. 
   Quaternion initial_roll = {
     cos(x_angle_accel * RADIANS_PER_DEGREE * 0.5), 
     sin(x_angle_accel * RADIANS_PER_DEGREE * 0.5),
@@ -89,8 +120,12 @@ void Imu::calibrate() {
     0.0001
   };
 
+  // Apply the rotation to the aircraft's current orientation
   orientation = product(orientation, initial_roll);
 
+  // Construct a unit quaternion representing the rotation around the pitch axis required 
+  // to move the aircraft from a level position to its current angle calculated from
+  // the net acceleration vector. 
   Quaternion initial_pitch = {
     cos(y_angle_accel * RADIANS_PER_DEGREE * 0.5), 
     0.0001, 
@@ -98,21 +133,34 @@ void Imu::calibrate() {
     0.0001 
   };
 
+  // Apply the rotation to the aircaft's current orientation
   orientation = product(orientation, initial_pitch);
-  #endif
+
+  #endif // ENABLE_GRAVITY_REFERENCED_ZERO
 }
 
+// Imediatly begins sampling accelermeter data and prints the average
+// of these readings to the serial monitor. Mpu6050 should be placed
+// on a level surface.
+// NOTE: Serial.begin() must be called before using this function
 void Imu::calibrate_accel() {
+  
+  // call normal calibration routine to wait for the aircraft to be motionless
   calibrate();
+
   Serial.println("Calibrating Accelerometer...");
 
   double x = 0;
   double y = 0;
   double z = 0;
   
+  // Sample the accelerometer the number of times as presribed by 
+  // ACCEL_CALIBRATION_READINGS. Then compute the average of these values.
   timer = 0;
   int count = 0;
   for (int i = 0; i < ACCEL_CALIBRATION_READINGS; ++i) {
+
+    // regulate the loop at 250 hertz
     while (micros() - timer < 4000);
     timer = micros();
 
@@ -122,10 +170,12 @@ void Imu::calibrate_accel() {
     y += mpu.get(Mpu6050::ACCELY) / (float)ACCEL_CALIBRATION_READINGS;
     z += mpu.get(Mpu6050::ACCELZ) / (float)ACCEL_CALIBRATION_READINGS;
 
+    // rapidly flash the led indicator 
     if (++count % 25 == 0) led_state = !led_state;
     digitalWrite(status_led, led_state); 
   }
 
+  // print the avrerages to the serial monitor
   Serial.print(" x: ");
   Serial.print(x);
   Serial.print(" y: ");
@@ -135,33 +185,44 @@ void Imu::calibrate_accel() {
   Serial.println();
 }
 
+// Samples the MPU6050 data. Constructs a 3D vector representing the
+// angular velcoity of the aircraft. Then, transforms this vector into
+// a unit quaternion representing the rotation. Computes the product of 
+// the last orientation and the rotation to determine the new orientation
+// of the aircaft.
 void Imu::run() {
+
   mpu.fetch();
 
+  // only save the current time upon first call to compute delta t for integration
+  // during all subsequent calls
   static bool start = true;
   if (start) {
     start = false;
     timer = micros();
   }
   else {
-    double t_delta = (micros() - timer) / 1000000.0; // seconds
+    double t_delta = (micros() - timer) / 1000000.0; // t_delta units: seconds
     timer = micros();
 
-    // create 3D vector of net angular velocity and finds its magnitude
+    // constrcut a 3 dimensional vector modeling the net angular velocity of the aircraft
     Vector w;
     w.x = (mpu.get(Mpu6050::GYROX) - x_zero) * Mpu6050::TICKS_PER_DEGREE * RADIANS_PER_DEGREE;
     w.y = (mpu.get(Mpu6050::GYROY) - y_zero) * Mpu6050::TICKS_PER_DEGREE * RADIANS_PER_DEGREE;
     w.z = (mpu.get(Mpu6050::GYROZ) - z_zero) * Mpu6050::TICKS_PER_DEGREE * RADIANS_PER_DEGREE;
+
+    // Compute the magnitude of the net angular velocity of the aircraft
     double w_norm = norm(w);
 
-    // transform angular rate into a unit quaternion representing the rotation
+    // Compute a rotation by integrating the angular rate. Store this rotation in the
+    // form of a unit quaternion.
     Quaternion rotation;
     rotation.w = cos((t_delta * w_norm) / 2);
     rotation.x = (sin((t_delta * w_norm) / 2) * w.x) / w_norm;
     rotation.y = (sin((t_delta * w_norm) / 2) * w.y) / w_norm;
     rotation.z = (sin((t_delta * w_norm) / 2) * w.z) / w_norm;
 
-    // apply rotation
+    // Apply the roation to the aircraft's current orientation 
     orientation = product(orientation, rotation);
 
     // calculate roll, pitch, and yaw angles
@@ -182,25 +243,34 @@ void Imu::run() {
     if (x_angle < -90) x_angle += 270;
     else x_angle -= 90;
 
-    // construct a 3 dimensional vector representint the net acceration on the aircraft
+    #ifdef ENABLE_GYRO_DRIFT_FILTER
+    // construct a 3 dimensional vector representing the net acceration on the aircraft
     Vector net_accel; 
     net_accel.x = (float)mpu.get(Mpu6050::ACCELX) - ACCELX_LEVEL_READING;
     net_accel.y = (float)mpu.get(Mpu6050::ACCELY) - ACCELY_LEVEL_READING;
     net_accel.z = (float)mpu.get(Mpu6050::ACCELZ) - ACCELZ_LEVEL_READING;
 
+    // compute the magnitude of the net acceration
     double accel_norm = norm(net_accel);
+
+    // compute the roll and pitch angles using the net accleration vector
     double x_angle_accel_current = asin(net_accel.y / accel_norm) * (1 / RADIANS_PER_DEGREE);
     double y_angle_accel_current = asin(net_accel.x / accel_norm) * (1 / RADIANS_PER_DEGREE) * -1;
 
+    // Apply an IIR filter to the acclerometer angles for noise reduction 
     x_angle_accel = x_angle_accel * ACCEL_FILTER_GAIN + 
                       x_angle_accel_current * (1 - ACCEL_FILTER_GAIN);
-
     y_angle_accel = y_angle_accel * ACCEL_FILTER_GAIN + 
                       y_angle_accel_current * (1 - ACCEL_FILTER_GAIN);
 
+    // Apply the antidrift filter by computring a weighted average between the angle
+    // given by the gyroscope data and the angle given by the acclerometer data.
     x_angle = x_angle * DRIFT_FILTER_GAIN + x_angle_accel * (1 - DRIFT_FILTER_GAIN);
     y_angle = y_angle * DRIFT_FILTER_GAIN + y_angle_accel * (1 - DRIFT_FILTER_GAIN);
+    
+    #endif // ENABLE_GYRO_DRIFT_FILTER
 
+    // inevert axes if neccessary 
     #ifdef INVERT_ROLL_AXIS
     x_angle *= -1;
     #endif    
@@ -213,18 +283,26 @@ void Imu::run() {
   }
 }
 
+// Returns the roll angle of the aircaft in degrees
+//  -180 < roll < 180
 double Imu::roll() {
   return x_angle;
 }
 
+// Returns the pitch angle of the aircaft in degrees
+//  -90 < pitch < 90
 double Imu::pitch() {
   return y_angle;
 }
 
+
+// Returns the yaw angle of the aircaft in degress
+//  -180 < yaw < 180
 double Imu::yaw() {
   return z_angle;
 }
 
+// computes then returns the product of two quaternions
 Imu::Quaternion Imu::product(const Quaternion &p, const Quaternion &q) {
   Quaternion result;
   
@@ -233,6 +311,7 @@ Imu::Quaternion Imu::product(const Quaternion &p, const Quaternion &q) {
   result.y = p.w * q.y - p.x * q.z + p.y * q.w + p.z * q.x;
   result.z = p.w * q.z + p.x * q.y - p.y * q.x + p.z * q.w;
 
+  // adjust dimensions to ensure the norm is 1 for noise reduction
   double l = norm(result);
   result.w /= l;
   result.x /= l;
@@ -242,33 +321,45 @@ Imu::Quaternion Imu::product(const Quaternion &p, const Quaternion &q) {
   return result;
 }
 
+// computes then returns the norm/length of a quaternion
 double Imu::norm(const Quaternion &q) {
   return sqrt(q.w * q.w + q.x * q.x + q.y * q.y + q.z * q.z);
 }
 
+// computes then returns the norm/length of a quaternion
 double Imu::norm(const Vector &v) {
   return sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
 }
 
 Imu::Mpu6050::Mpu6050() { }
 
+// Begins I2C communication with the Mpu6050 sensor. Configures the
+// Mpu6050 power settings, gyroscope accuracy, and accelermeter
+// accuracy.
 void Imu::Mpu6050::begin() {
+
+  // power up the MPU6050 sensor
   Wire.beginTransmission(MPU6050_I2C_ADDRESS);
   Wire.write(MPU6050_POWER_MANAGEMENT_REGISTER);
   Wire.write(MPU_6050_POWER_ON);
   Wire.endTransmission();
 
+  // set the accelerometer accuracy
   Wire.beginTransmission(MPU6050_I2C_ADDRESS);
   Wire.write(MPU6050_ACCELEROMETER_CONFIG_REGISTER);
   Wire.write(ACCELEROMETER_ACCURACY);
   Wire.endTransmission();
 
+  // set the gyroscope accuracy
   Wire.beginTransmission(MPU6050_I2C_ADDRESS);
   Wire.write(MPU6050_GYRO_CONFIG_REGISTER);
   Wire.write(GYRO_ACCURACY);
   Wire.endTransmission();
 }
 
+// Opens I2C communication with the Mpu6050 sensor. Retreieves raw
+// gyroscope, accelermeter, and temperature data and stores it in the 
+// private int array data.
 void Imu::Mpu6050::fetch() {
   Wire.beginTransmission(MPU6050_I2C_ADDRESS);
   Wire.write(MPU6050_ACCEL_XOUT_H_REGISTER);
@@ -282,6 +373,7 @@ void Imu::Mpu6050::fetch() {
   }
 }
 
+// returns the requested raw Mpu6050 data
 int Imu::Mpu6050::get(int val) {
   return data[val];
 }
