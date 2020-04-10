@@ -1,45 +1,16 @@
 #include "ppm.h"
 
 
-static volatile unsigned long* timer;
-static volatile int* data_ptr;
-static volatile int* chan_ptr;
-static volatile int* sync_ptr;
-static int* pin_ptr;
-
-static void high();
-static void low();
-
-ppmDecoder::ppmDecoder(int pin) {
-    timer = new unsigned long;
-    data_ptr = new int[14];
-    chan_ptr = new int;
-    sync_ptr = new int;
-    pin_ptr = new int;
-    
-    *pin_ptr = pin;
+ppmDecoder::ppmDecoder(int pin_in) { 
+    pin = pin_in;
 
     is_synced = false;
     is_connected = false;
-}
 
-void ppmDecoder::begin() {
+    sync_ptr = data;
+    chan_ptr = data;
 
-    pinMode(*pin_ptr, INPUT_PULLUP);
-
-    delay(250);
-
-    sync_ptr = data_ptr;
-    chan_ptr = data_ptr;
-
-    attachInterrupt(digitalPinToInterrupt(*pin_ptr), [](void){
-        *chan_ptr = micros() - *timer;
-        *timer = micros();
-        if (chan_ptr == data_ptr + 13) chan_ptr = data_ptr;
-        else ++chan_ptr;
-    }, CHANGE);
-
-    sync();
+    pinMode(pin, INPUT_PULLUP);
 }
 
 void ppmDecoder::sync() {
@@ -50,7 +21,7 @@ void ppmDecoder::sync() {
             break;
         }
 
-        if (sync_ptr == data_ptr + 13) sync_ptr = data_ptr;
+        if (sync_ptr == data + 13) sync_ptr = data;
         else ++sync_ptr;
 
         is_synced = false;
@@ -75,7 +46,7 @@ void ppmDecoder::sync() {
 }
 
 int ppmDecoder::get(int chan) {
-    if (sync_ptr + chan <= data_ptr + 13) {
+    if (sync_ptr + chan <= data + 13) {
         return *(sync_ptr + chan);
     }
     else {
@@ -87,22 +58,9 @@ bool ppmDecoder::error() {
     return !is_connected || !is_synced;
 }
 
-ppmDecoder::~ppmDecoder() {
-    delete timer;
-    delete data_ptr;
-    delete sync_ptr;
-    delete chan_ptr;
-    delete pin_ptr;
-}
-
-static void high() {
-    *timer = micros();
-    attachInterrupt(digitalPinToInterrupt(*pin_ptr), low, LOW);
-}
-
-static void low() {
-    *chan_ptr = micros() - *timer;
-    attachInterrupt(digitalPinToInterrupt(*pin_ptr), high, HIGH);
-    if (chan_ptr == data_ptr + 6) chan_ptr = data_ptr;
+void ppmDecoder::toggle() {
+    *chan_ptr = micros() - timer;
+    timer = micros();
+    if (chan_ptr == data + 13) chan_ptr = data;
     else ++chan_ptr;
 }

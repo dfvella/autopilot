@@ -5,7 +5,7 @@
 
 #define MIN_SYNC_PULSEWIDTH 10000
 
-#define MAXIMUM_RESYNC_ATTEMPTS 13
+#define MAXIMUM_RESYNC_ATTEMPTS 5
 
 #define PPM_PRINT_WARNINGS
 
@@ -13,12 +13,11 @@
 
 class ppmDecoder {
     public:
-        ppmDecoder(int pin);
-        void begin();
+        ppmDecoder(int pin_in);
         void sync();
-        bool error();
         int get(int chan);
-        ~ppmDecoder();
+        bool error();
+        void toggle();
 
         static constexpr int ARL = 2;
         static constexpr int ELE = 4;
@@ -30,6 +29,13 @@ class ppmDecoder {
     private:
         bool is_synced;
         bool is_connected;
+
+        unsigned long timer;
+        int data[14];
+        int* chan_ptr;
+        int* sync_ptr;
+
+        int pin;
 };
 
 #endif
