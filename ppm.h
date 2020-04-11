@@ -13,7 +13,7 @@
 
 class ppmDecoder {
     public:
-        ppmDecoder(int pin_in);
+        ppmDecoder();
         void sync();
         int get(int chan);
         bool error();
@@ -34,8 +34,16 @@ class ppmDecoder {
         int data[14];
         int* chan_ptr;
         int* sync_ptr;
-
-        int pin;
 };
+
+#define assignPpmHandlerToPin(handler, pin) \
+    pinMode(pin, INPUT_PULLUP); \
+    attachInterrupt( \
+        digitalPinToInterrupt(pin), \
+        [](void){ \
+            handler.toggle(); \
+        }, \
+        CHANGE \
+    );
 
 #endif

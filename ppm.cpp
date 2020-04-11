@@ -1,17 +1,11 @@
 #include "ppm.h"
 
 
-ppmDecoder::ppmDecoder(int pin_in) { 
-    pin = pin_in;
-
-    is_synced = false;
-    is_connected = false;
-
-    sync_ptr = data;
-    chan_ptr = data;
-
-    pinMode(pin, INPUT_PULLUP);
-}
+ppmDecoder::ppmDecoder() :
+    is_synced(false), 
+    is_connected(false),
+    sync_ptr(data), 
+    chan_ptr(data) { }
 
 void ppmDecoder::sync() {
     for (int i = 0; i < MAXIMUM_RESYNC_ATTEMPTS; ++i) {
