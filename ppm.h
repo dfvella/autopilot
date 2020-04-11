@@ -38,7 +38,7 @@ class ppmDecoder {
         int* sync_ptr;
 };
 
-#define assignPpmHandlerToPin(handler, pin) \
+#define assignPpmDecoderToPin(handler, pin) \
     pinMode(pin, INPUT_PULLUP); \
     attachInterrupt( \
         digitalPinToInterrupt(pin), \
@@ -48,7 +48,7 @@ class ppmDecoder {
         CHANGE \
     );
 
-#define removePpmHandlerFromPin(handler, pin) \
+#define removePpmDecoderFromPin(handler, pin) \
     detachInterrupt(pin);
 
 #ifdef PPM_PRINT_WARNINGS
