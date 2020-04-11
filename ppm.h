@@ -3,12 +3,14 @@
 
 #include <Arduino.h>
 
+#define MAXIMUM_PPM_PULSEWIDTH 1900
+#define MINIMUM_PPM_PUSLEWIDTH 1100
+
 #define MIN_SYNC_PULSEWIDTH 10000
 
 #define MAXIMUM_RESYNC_ATTEMPTS 5
 
-#define PPM_PRINT_WARNINGS
-
+// #define PPM_PRINT_WARNINGS
 #define TELEMETRY_CHECKING
 
 class ppmDecoder {
@@ -45,5 +47,12 @@ class ppmDecoder {
         }, \
         CHANGE \
     );
+
+#define removePpmHandlerFromPin(handler, pin) \
+    detachInterrupt(pin);
+
+#ifdef PPM_PRINT_WARNINGS
+#define SERIAL_CONNECTION
+#endif
 
 #endif
