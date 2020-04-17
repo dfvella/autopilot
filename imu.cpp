@@ -1,12 +1,15 @@
 #include "imu.h"
 
 // constructor sets the intial orientation of the aircaft to level with the ground
-Imu::Imu() {
+Imu::Imu(int pin) : status_led(pin) {
   orientation.w = 0.70710;
   orientation.x = 0.70710;
   orientation.y = 0.00001;
   orientation.z = 0.00001;
 }
+
+// default constructor disables status led indicator
+Imu::Imu() : Imu(0) { }
 
 // Waits until the accelermeter does not detect significant motion.
 // Takes calibration readings to determine the gyroscope raw readings
@@ -16,7 +19,7 @@ void Imu::calibrate() {
 
   mpu.begin();
 
-  pinMode(status_led, OUTPUT);
+  bool led_state = false;
 
   int count = 0, rest = 0;
   int x_prev, y_prev, z_prev;
@@ -50,8 +53,11 @@ void Imu::calibrate() {
     else rest = 0;
 
     // slowly flash the led indicator
-    if (++count % 200 == 0) led_state = !led_state;
-    digitalWrite(status_led, led_state);
+    if (status_led)
+    {
+      if (++count % 200 == 0) led_state = !led_state;
+      digitalWrite(status_led, led_state);
+    }
   }
 
   x_zero = 0;
@@ -81,8 +87,11 @@ void Imu::calibrate() {
     accel_z += mpu.get(Mpu6050::ACCELZ);
 
     // rapidly flash the led indicator
-    if (++count % 25 == 0) led_state = !led_state;
-    digitalWrite(status_led, led_state); 
+    if (status_led) 
+    {
+      if (++count % 25 == 0) led_state = !led_state;
+      digitalWrite(status_led, led_state); 
+    }
   }
 
   // Divide the sums buy the number of readings to get the average
@@ -148,6 +157,8 @@ void Imu::calibrate_accel() {
   // call normal calibration routine to wait for the aircraft to be motionless
   calibrate();
 
+  bool led_state;
+
   Serial.println("Calibrating Accelerometer...");
 
   double x = 0;
@@ -171,8 +182,11 @@ void Imu::calibrate_accel() {
     z += mpu.get(Mpu6050::ACCELZ) / (float)ACCEL_CALIBRATION_READINGS;
 
     // rapidly flash the led indicator 
-    if (++count % 25 == 0) led_state = !led_state;
-    digitalWrite(status_led, led_state); 
+    if (status_led) 
+    {
+      if (++count % 25 == 0) led_state = !led_state;
+      digitalWrite(status_led, led_state); 
+    }
   }
 
   // print the avrerages to the serial monitor

@@ -25,7 +25,7 @@
 //#define INVERT_YAW_AXIS
 
 // ********** IMU CALIBRATION ROUTINE SETTINGS **********
-#define PRE_CALIBRATION_REST_TIMER 500
+#define PRE_CALIBRATION_REST_TIMER 1500
 #define MIN_ACCEL_DIFF 200
 #define GYRO_CALIBRATION_READINGS 1000
 #define ACCEL_CALIBRATION_READINGS 5000
@@ -63,6 +63,10 @@
 class Imu {
   public:
     // constructor sets the intial orientation of the aircaft
+    // OPTIONAL: provide a pin number for a status led indicator
+    Imu(int pin);
+
+    // deflault constructor disabled status led indicator
     Imu();
 
     // Waits until the accelermeter does not detect significant motion.
@@ -171,8 +175,7 @@ class Imu {
 
     Mpu6050 mpu;
 
-    int status_led = 13;
-    bool led_state;
+    int status_led;
 };
 
 #endif
