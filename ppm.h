@@ -11,7 +11,7 @@
 #define MAXIMUM_RESYNC_ATTEMPTS 5
 
 // #define PPM_PRINT_WARNINGS
-#define TELEMETRY_CHECKING
+//#define TELEMETRY_CHECKING
 
 class ppmDecoder {
     public:

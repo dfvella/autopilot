@@ -26,7 +26,7 @@ void ppmDecoder::sync() {
 
     static int prev = *sync_ptr;
 
-    if (*sync_ptr - prev < 20) ++count;
+    if (*sync_ptr - prev < 10) ++count;
     else count = 0;
 
     prev = *sync_ptr;
