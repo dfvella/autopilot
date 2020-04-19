@@ -34,6 +34,8 @@ class Servo {
 
     void set(int signal_in)
     {
+        if (signal_in > 2000) signal_in = 2000;
+        if (signal_in < 1000) signal_in = 1000;
         signal = signal_in;
     }
 
