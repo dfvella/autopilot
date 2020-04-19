@@ -4,7 +4,9 @@
 #include <Arduino.h>
 
 //#define PRINT_IMU_ANGLES
-#define PRINT_PPM_INPUTS
+//#define PRINT_PPM_INPUTS
+//#define PRINT_MIXED_OUTPUTS
+//#define PRINT_FLIGHT_MODE
 //#define PRINT_LOOP_TIME
 
 #ifdef PRINT_IMU_ANGLES
@@ -39,11 +41,35 @@
 #define print_ppm_inputs()
 #endif
 
+#ifdef PRINT_MIXED_OUTPUTS
+#define DO_LOGGING
+#define print_mixed_outputs() \
+    Serial.print("Mixed: "); \
+    Serial.print(RTS_output); \
+    Serial.print(" "); \
+    Serial.print(RBS_output); \
+    Serial.print(" "); \
+    Serial.print(LTS_output); \
+    Serial.print(" "); \
+    Serial.println(LBS_output);
+#else 
+#define print_mixed_outputs()
+#endif
+
+#ifdef PRINT_FLIGHT_MODE
+#define DO_LOGGING
+#define print_flight_mode() \
+    Serial.print("flight mode: "); \
+    Serial.println(fmode);
+#else 
+#define print_flight_mode()
+#endif
+
 #ifdef PRINT_LOOP_TIME
 #define DO_LOGGING
 #define print_loop_time() \
     Serial.print("loop time: "); \
-    Serial.println(timer);
+    Serial.println(micros() - timer);
 #else 
 #define print_loop_time()
 #endif
@@ -51,6 +77,8 @@
 #define print_log() \
     print_imu_angles() \
     print_ppm_inputs() \
+    print_mixed_outputs() \
+    print_flight_mode() \
     print_loop_time()
 
 #ifdef DO_LOGGING
