@@ -39,6 +39,11 @@ class Servo {
         signal = signal_in;
     }
 
+    int get()
+    {
+        return signal;
+    }
+
     static void write_all(Servo* servo[], const int num)
     {
         Servo* sorted_servo[num];
