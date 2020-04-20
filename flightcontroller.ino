@@ -9,6 +9,9 @@
 //#define CALIBRATE_ACCELEROMETER
 //#define DISABLE_SERVOS
 
+#define MAX_ROLL_ANGLE 40
+#define MAX_PITCH_ANGLE 40
+
 unsigned long timer = 0;
 
 const int status_led = 13;
@@ -36,6 +39,7 @@ class PIDcontroller
     {
       timer = micros();
       start = false;
+      return 1500;
     }
     else 
     {
@@ -51,6 +55,7 @@ class PIDcontroller
 
       output += d * ((error - prev_error) / t_delta);
       error = prev_error;
+      return output;
     }  
   }
   private:
@@ -63,6 +68,9 @@ class PIDcontroller
   double prev_output;
   double prev_error;
 };
+
+PIDcontroller roll_pid(12, 0, 0, 1);
+PIDcontroller pitch_pid(12, 0, 0, 1);
 
 void setup() 
 {
@@ -100,7 +108,7 @@ void loop()
   const int PASSTHRU = 1;
   const int AUTOLEVEL = 2;
 
-  static int RTS_output, RBS_output, LTS_output, LBS_output;
+  static int arl_out, ele_out, rud_out;
   
   imu.run();
 
@@ -116,24 +124,31 @@ void loop()
   }
   if (state == 1)
   {
-    // left-right, out-in, rightin-leftin
-
-    int arl = ppm.get(ppmDecoder::ARL);
-    int ele = ppm.get(ppmDecoder::ELE);
-    int rud = ppm.get(ppmDecoder::RUD);
-
-    RTS_output = map_right_top(arl, ele, rud);
-    RBS_output = map_right_bottom(arl, ele, rud);
-    LTS_output = map_left_top(arl, ele, rud);
-    LBS_output = map_left_bottom(arl, ele, rud);
+    double roll_target = (ppm.get(ppmDecoder::ARL) - 1500) * 0.04;
+    double pitch_target = (ppm.get(ppmDecoder::ELE) - 1500) * 0.04;
+    if (fmode == PASSTHRU)
+    {
+      arl_out = ppm.get(ppmDecoder::ARL);
+      ele_out = ppm.get(ppmDecoder::ELE);
+    }
+    else
+    {
+      arl_out = roll_pid.calculate(roll_target - imu.roll()) + 1500;
+      ele_out = pitch_pid.calculate(pitch_target - imu.pitch()) + 1500;
+    }
+    rud_out = ppm.get(ppmDecoder::RUD);
   }
   if (state == 2)
   {
-    servo[THR]->set(ppm.get(ppmDecoder::THR));
-    servo[RTS]->set(RTS_output);
-    servo[RBS]->set(RBS_output);
-    servo[LTS]->set(LTS_output);
-    servo[LBS]->set(LBS_output);
+    if (fmode == DISARMED)
+      servo[THR]->set(1000);
+    else
+      servo[THR]->set(ppm.get(ppmDecoder::THR));
+
+    servo[RTS]->set(map_right_top(arl_out, ele_out, rud_out));
+    servo[RBS]->set(map_right_bottom(arl_out, ele_out, rud_out));
+    servo[LTS]->set(map_left_top(arl_out, ele_out, rud_out));
+    servo[LBS]->set(map_left_bottom(arl_out, ele_out, rud_out));
   }
   if (state == 3)
   {
@@ -146,6 +161,10 @@ void loop()
     state = 0;
   else
     ++state;
+
+  #ifdef PRINT_LOOP_TIME
+  int loop_time = micros() - timer;
+  #endif
 
   #ifdef DO_LOGGING
   print_log()
