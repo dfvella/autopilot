@@ -6,6 +6,7 @@
 //#define PRINT_IMU_ANGLES
 //#define PRINT_PPM_INPUTS
 //#define PRINT_MIXED_OUTPUTS
+//#define PRINT_PID_OUTPUTS
 //#define PRINT_FLIGHT_MODE
 //#define PRINT_LOOP_TIME
 
@@ -44,16 +45,27 @@
 #ifdef PRINT_MIXED_OUTPUTS
 #define DO_LOGGING
 #define print_mixed_outputs() \
-    Serial.print("Mixed: "); \
-    Serial.print(RTS_output); \
+    Serial.print("PWM out: "); \
+    Serial.print(servo[RTS]->get()); \
     Serial.print(" "); \
-    Serial.print(RBS_output); \
+    Serial.print(servo[RBS]->get()); \
     Serial.print(" "); \
-    Serial.print(LTS_output); \
+    Serial.print(servo[LTS]->get()); \
     Serial.print(" "); \
-    Serial.println(LBS_output);
+    Serial.println(servo[LBS]->get());
 #else 
 #define print_mixed_outputs()
+#endif
+
+#ifdef PRINT_PID_OUTPUTS
+#define DO_LOGGING
+#define print_pid_outputs() \
+    Serial.print("PID out: "); \
+    Serial.print(servo[RTS]->get()); \
+    Serial.print(" "); \
+    Serial.println(servo[RBS]->get());
+#else 
+#define print_pid_outputs()
 #endif
 
 #ifdef PRINT_FLIGHT_MODE
@@ -68,8 +80,8 @@
 #ifdef PRINT_LOOP_TIME
 #define DO_LOGGING
 #define print_loop_time() \
-    Serial.print("loop time: "); \
-    Serial.println(micros() - timer);
+    Serial.print("loop: "); \
+    Serial.println(loop_time);
 #else 
 #define print_loop_time()
 #endif
@@ -78,6 +90,7 @@
     print_imu_angles() \
     print_ppm_inputs() \
     print_mixed_outputs() \
+    print_pid_outputs() \
     print_flight_mode() \
     print_loop_time()
 
