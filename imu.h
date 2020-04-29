@@ -16,7 +16,7 @@
 // ********** FILTER GAINS **********
 #define ACCEL_FILTER_GAIN 0.1
 #define DRIFT_FILTER_GAIN 0.98
-#define ENABLE_GYRO_DRIFT_FILTER 
+//#define ENABLE_GYRO_DRIFT_FILTER 
 //NOTE: increases run() runtime by 10-15%
 
 // ********** INVERT AXES **********
@@ -60,7 +60,8 @@
 
 
 
-class Imu {
+class Imu 
+{
   public:
     // constructor sets the intial orientation of the aircaft
     // OPTIONAL: provide a pin number for a status led indicator
@@ -105,7 +106,8 @@ class Imu {
   private:
     static constexpr double RADIANS_PER_DEGREE = 0.01745329;
 
-    struct Quaternion {
+    struct Quaternion 
+    {
         double w, x, y, z;
     };
 
@@ -115,7 +117,8 @@ class Imu {
     // computes then returns the norm/length of a quaternion
     double norm(const Quaternion &q);
 
-    struct Vector {
+    struct Vector 
+    {
       double x, y, z;
     };
 
@@ -139,7 +142,8 @@ class Imu {
     unsigned long timer;
 
     // excapsulates the I2C interface with the Mpu6050 sensor
-    class Mpu6050 {
+    class Mpu6050 
+    {
       public:
         Mpu6050();
 
