@@ -10,7 +10,7 @@ ppmDecoder::ppmDecoder() :
 void ppmDecoder::sync() {
     for (int i = 0; i < MAXIMUM_RESYNC_ATTEMPTS; ++i) {
 
-        if (*sync_ptr > MIN_SYNC_PULSEWIDTH) {
+        if (*sync_ptr > MINIMUM_SYNC_PULSEWIDTH) {
             is_synced = true;
             break;
         }
@@ -52,8 +52,8 @@ int ppmDecoder::get(int chan) {
         val = *(sync_ptr + chan - 14);
     }
     val += 300;
-    if (val < MINIMUM_PPM_PUSLEWIDTH) {
-        val = MINIMUM_PPM_PUSLEWIDTH;
+    if (val < MINIMUM_PPM_PULSEWIDTH) {
+        val = MINIMUM_PPM_PULSEWIDTH;
     }
     if (val > MAXIMUM_PPM_PULSEWIDTH) {
         val = MAXIMUM_PPM_PULSEWIDTH;

@@ -3,12 +3,6 @@
 
 #include <Arduino.h>
 
-#define MAXIMUM_PPM_PULSEWIDTH 2000
-#define MINIMUM_PPM_PUSLEWIDTH 1000
-
-#define MIN_SYNC_PULSEWIDTH 10000
-
-#define MAXIMUM_RESYNC_ATTEMPTS 5
 
 // #define PPM_PRINT_WARNINGS
 //#define TELEMETRY_CHECKING
@@ -27,6 +21,11 @@ class ppmDecoder {
         static constexpr int RUD = 8;
         static constexpr int GER = 10;
         static constexpr int AUX = 12;
+
+        static constexpr int MAXIMUM_PPM_PULSEWIDTH = 2000;
+        static constexpr int MINIMUM_PPM_PULSEWIDTH = 1000;
+        static constexpr int MINIMUM_SYNC_PULSEWIDTH = 10000;
+        static constexpr int MAXIMUM_RESYNC_ATTEMPTS = 5;
 
     private:
         bool is_synced;
