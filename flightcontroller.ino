@@ -89,11 +89,11 @@ void setup()
 
   assignPpmDecoderToPin(ppm, 2);
 
-  servo[THR] = new Servo(3);
-  servo[RTS] = new Servo(4);
-  servo[RBS] = new Servo(5);
-  servo[LTS] = new Servo(6);
-  servo[LBS] = new Servo(7);
+  servo[THR] = new Servo(4);
+  servo[RTS] = new Servo(5);
+  servo[RBS] = new Servo(6);
+  servo[LTS] = new Servo(7);
+  servo[LBS] = new Servo(8);
   
   digitalWrite(status_led, LOW);
   timer = micros();
@@ -145,10 +145,11 @@ void loop()
     else
       servo[THR]->set(ppm.get(ppmDecoder::THR));
 
-    servo[RTS]->set(map_right_top(arl_out, ele_out, rud_out));
-    servo[RBS]->set(map_right_bottom(arl_out, ele_out, rud_out));
-    servo[LTS]->set(map_left_top(arl_out, ele_out, rud_out));
-    servo[LBS]->set(map_left_bottom(arl_out, ele_out, rud_out));
+    // add definitions for max and min throw for each channel
+    servo[RTS]->set(constrain(map_right_top(arl_out, ele_out, rud_out), 1200, 1800));
+    servo[RBS]->set(constrain(map_right_bottom(arl_out, ele_out, rud_out), 1200, 1800));
+    servo[LTS]->set(constrain(map_left_top(arl_out, ele_out, rud_out), 1200, 1800));
+    servo[LBS]->set(constrain(map_left_bottom(arl_out, ele_out, rud_out), 1200, 1800));
   }
   if (state == 3)
   {
