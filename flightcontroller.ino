@@ -117,7 +117,7 @@ void loop()
   const int AUTOLEVEL = 1;
   const int AUTOCLIMB = 2;
 
-  static int arl_out, ele_out, rud_out;
+  static int arl_out, ele_out, rud_out, brk_out;
   
   imu.run();
 
@@ -146,6 +146,13 @@ void loop()
       ele_out = pitch_pid.calculate(imu.pitch() - pitch_target + PID_PITCH_TRIM) + 1500;
     }
     rud_out = ppm.get(ppmDecoder::RUD);
+
+    brk_out = 0;
+    if (ppm.get(ppmDecoder::GER) < 1700)
+      brk_out = 100;
+    if (ppm.get(ppmDecoder::GER) < 1300)
+      brk_out = 400;
+
   }
   if (state == 2)
   {
@@ -156,10 +163,10 @@ void loop()
       trim = AUTOCLIMB_TRIM;
 
     // add definitions for max and min throw for each channel
-    servo[RTS]->set(constrain(map_right_top(arl_out, ele_out, rud_out), 1200, 1800) + trim);
-    servo[RBS]->set(constrain(map_right_bottom(arl_out, ele_out, rud_out), 1200, 1800) - trim);
-    servo[LTS]->set(constrain(map_left_top(arl_out, ele_out, rud_out), 1200, 1800) - trim);
-    servo[LBS]->set(constrain(map_left_bottom(arl_out, ele_out, rud_out), 1200, 1800) + trim);
+    servo[RTS]->set(constrain(map_right_top(arl_out, ele_out, rud_out, brk_out), 1200, 1800) + trim);
+    servo[RBS]->set(constrain(map_right_bottom(arl_out, ele_out, rud_out, brk_out), 1200, 1800) - trim);
+    servo[LTS]->set(constrain(map_left_top(arl_out, ele_out, rud_out, brk_out), 1200, 1800) - trim);
+    servo[LBS]->set(constrain(map_left_bottom(arl_out, ele_out, rud_out, brk_out), 1200, 1800) + trim);
   }
   if (state == 3)
   {
