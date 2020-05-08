@@ -30,7 +30,7 @@ Servo* servo[NUM_SERVOS];
 class PIDcontroller
 {
   public:
-  PIDcontroller(int p_in, int i_in, int d_in, int i_max_in) 
+  PIDcontroller(double p_in, double i_in, double d_in, double i_max_in) 
     : p(p_in), i(i_in), d(d_in), i_max(i_max_in) { }
   double calculate(double error)
   {
@@ -53,16 +53,17 @@ class PIDcontroller
       if (i_output < -1 * i_max) i_output = -1 * i_max;
       output += i * i_output;
 
-      output += d * ((error - prev_error) / t_delta);
-      error = prev_error;
+      output += d * ((error - prev_error) / t_delta) * 1000000;
+      prev_error = error;
+
       return output;
     }  
   }
   private:
-  int p;
-  int i;
-  int d;
-  int i_max;
+  double p;
+  double i;
+  double d;
+  double i_max;
   double i_output;
   unsigned long timer;
   double prev_output;
@@ -70,7 +71,7 @@ class PIDcontroller
 };
 
 PIDcontroller roll_pid(12, 0, 0, 1);
-PIDcontroller pitch_pid(12, 0, 0, 1);
+PIDcontroller pitch_pid(24, 0, 1.2, 1);
 
 void setup() 
 {
@@ -133,8 +134,8 @@ void loop()
     }
     else
     {
-      arl_out = roll_pid.calculate(roll_target - imu.roll()) + 1500;
-      ele_out = pitch_pid.calculate(pitch_target - imu.pitch()) + 1500;
+      arl_out = roll_pid.calculate(imu.roll() - roll_target) + 1500;
+      ele_out = pitch_pid.calculate(imu.pitch() - pitch_target) + 1500;
     }
     rud_out = ppm.get(ppmDecoder::RUD);
   }
