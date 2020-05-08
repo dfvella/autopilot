@@ -125,8 +125,8 @@ void loop()
   }
   if (state == 1)
   {
-    double roll_target = (ppm.get(ppmDecoder::ARL) - 1500) * 0.04;
-    double pitch_target = (ppm.get(ppmDecoder::ELE) - 1500) * 0.04;
+    double roll_target = (1500 - ppm.get(ppmDecoder::ARL)) * 0.04;
+    double pitch_target = (1500 - ppm.get(ppmDecoder::ELE)) * 0.04;
     if (fmode == PASSTHRU)
     {
       arl_out = ppm.get(ppmDecoder::ARL);
