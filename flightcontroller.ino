@@ -9,8 +9,16 @@
 //#define CALIBRATE_ACCELEROMETER
 //#define DISABLE_SERVOS
 
+// units: degrees
 #define MAX_ROLL_ANGLE 40
 #define MAX_PITCH_ANGLE 40
+
+// units microseconds
+#define AUTOCLIMB_TRIM 75
+
+// units: degrees
+#define PID_ROLL_TRIM 2
+#define PID_PITCH_TRIM -1
 
 unsigned long timer = 0;
 
@@ -71,7 +79,7 @@ class PIDcontroller
 };
 
 PIDcontroller roll_pid(12, 0, 0, 1);
-PIDcontroller pitch_pid(24, 0, 1.2, 1);
+PIDcontroller pitch_pid(24, 0, 0.5, 1);
 
 void setup() 
 {
@@ -103,11 +111,11 @@ void setup()
 void loop() 
 {
   static int state = 0;
-
   static int fmode = 0;
-  const int DISARMED = 0;
-  const int PASSTHRU = 1;
-  const int AUTOLEVEL = 2;
+
+  const int PASSTHRU = 0;
+  const int AUTOLEVEL = 1;
+  const int AUTOCLIMB = 2;
 
   static int arl_out, ele_out, rud_out;
   
@@ -117,9 +125,9 @@ void loop()
   {
     ppm.sync();
 
-    fmode = AUTOLEVEL;
+    fmode = AUTOCLIMB;
     if (ppm.get(ppmDecoder::AUX) < 1700)
-      fmode = DISARMED;
+      fmode = AUTOLEVEL;
     if (ppm.get(ppmDecoder::AUX) < 1300)
       fmode = PASSTHRU;
   }
@@ -134,23 +142,24 @@ void loop()
     }
     else
     {
-      arl_out = roll_pid.calculate(imu.roll() - roll_target) + 1500;
-      ele_out = pitch_pid.calculate(imu.pitch() - pitch_target) + 1500;
+      arl_out = roll_pid.calculate(imu.roll() - roll_target + PID_ROLL_TRIM) + 1500;
+      ele_out = pitch_pid.calculate(imu.pitch() - pitch_target + PID_PITCH_TRIM) + 1500;
     }
     rud_out = ppm.get(ppmDecoder::RUD);
   }
   if (state == 2)
   {
-    if (fmode == DISARMED)
-      servo[THR]->set(1000);
-    else
-      servo[THR]->set(ppm.get(ppmDecoder::THR));
+    servo[THR]->set(ppm.get(ppmDecoder::THR));
+
+    int trim = 0;
+    if (fmode == AUTOCLIMB)
+      trim = AUTOCLIMB_TRIM;
 
     // add definitions for max and min throw for each channel
-    servo[RTS]->set(constrain(map_right_top(arl_out, ele_out, rud_out), 1200, 1800));
-    servo[RBS]->set(constrain(map_right_bottom(arl_out, ele_out, rud_out), 1200, 1800));
-    servo[LTS]->set(constrain(map_left_top(arl_out, ele_out, rud_out), 1200, 1800));
-    servo[LBS]->set(constrain(map_left_bottom(arl_out, ele_out, rud_out), 1200, 1800));
+    servo[RTS]->set(constrain(map_right_top(arl_out, ele_out, rud_out), 1200, 1800) + trim);
+    servo[RBS]->set(constrain(map_right_bottom(arl_out, ele_out, rud_out), 1200, 1800) - trim);
+    servo[LTS]->set(constrain(map_left_top(arl_out, ele_out, rud_out), 1200, 1800) - trim);
+    servo[LBS]->set(constrain(map_left_bottom(arl_out, ele_out, rud_out), 1200, 1800) + trim);
   }
   if (state == 3)
   {
