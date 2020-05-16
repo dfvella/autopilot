@@ -33,4 +33,17 @@ int map_right_bottom(int arl, int ele, int rud, int brk);
 int map_left_top(int arl, int ele, int rud, int brk);
 int map_left_bottom(int arl, int ele, int rud, int brk);
 
+class PIDcontroller
+{
+    public:
+        PIDcontroller(double p_in, double i_in, double d_in, double i_max_in);
+        double calculate(double error);
+
+    private:
+        double p, i, d, i_max;
+        double i_output, prev_output, prev_error;
+
+        unsigned long timer;
+};
+
 #endif 
