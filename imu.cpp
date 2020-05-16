@@ -36,13 +36,13 @@ void Imu::calibrate() {
     mpu.fetch();
 
     // compute the derivative of the acceration along each axis
-    int x_diff = abs(mpu.get(Mpu6050::ACCELX) - x_prev);
-    int y_diff = abs(mpu.get(Mpu6050::ACCELY) - y_prev);
-    int z_diff = abs(mpu.get(Mpu6050::ACCELZ) - z_prev);
+    int x_diff = abs(mpu.get(ACCELX) - x_prev);
+    int y_diff = abs(mpu.get(ACCELY) - y_prev);
+    int z_diff = abs(mpu.get(ACCELZ) - z_prev);
 
-    x_prev = mpu.get(Mpu6050::ACCELX);
-    y_prev = mpu.get(Mpu6050::ACCELY);
-    z_prev = mpu.get(Mpu6050::ACCELZ);
+    x_prev = mpu.get(ACCELX);
+    y_prev = mpu.get(ACCELY);
+    z_prev = mpu.get(ACCELZ);
 
     // if the dirivative is higher than the threshold along any axis,
     // set the counter back to 0
@@ -78,13 +78,13 @@ void Imu::calibrate() {
 
     mpu.fetch();
 
-    x_zero += mpu.get(Mpu6050::GYROX);
-    y_zero += mpu.get(Mpu6050::GYROY);
-    z_zero += mpu.get(Mpu6050::GYROZ);
+    x_zero += mpu.get(GYROX);
+    y_zero += mpu.get(GYROY);
+    z_zero += mpu.get(GYROZ);
 
-    accel_x += mpu.get(Mpu6050::ACCELX);
-    accel_y += mpu.get(Mpu6050::ACCELY);
-    accel_z += mpu.get(Mpu6050::ACCELZ);
+    accel_x += mpu.get(ACCELX);
+    accel_y += mpu.get(ACCELY);
+    accel_z += mpu.get(ACCELZ);
 
     // rapidly flash the led indicator
     if (status_led) 
@@ -177,9 +177,9 @@ void Imu::calibrate_accel() {
 
     mpu.fetch();
 
-    x += mpu.get(Mpu6050::ACCELX) / (float)ACCEL_CALIBRATION_READINGS;
-    y += mpu.get(Mpu6050::ACCELY) / (float)ACCEL_CALIBRATION_READINGS;
-    z += mpu.get(Mpu6050::ACCELZ) / (float)ACCEL_CALIBRATION_READINGS;
+    x += mpu.get(ACCELX) / (float)ACCEL_CALIBRATION_READINGS;
+    y += mpu.get(ACCELY) / (float)ACCEL_CALIBRATION_READINGS;
+    z += mpu.get(ACCELZ) / (float)ACCEL_CALIBRATION_READINGS;
 
     // rapidly flash the led indicator 
     if (status_led) 
@@ -221,9 +221,9 @@ void Imu::run() {
 
     // constrcut a 3 dimensional vector modeling the net angular velocity of the aircraft
     Vector w;
-    w.x = (mpu.get(Mpu6050::GYROX) - x_zero) * Mpu6050::TICKS_PER_DEGREE * RADIANS_PER_DEGREE;
-    w.y = (mpu.get(Mpu6050::GYROY) - y_zero) * Mpu6050::TICKS_PER_DEGREE * RADIANS_PER_DEGREE;
-    w.z = (mpu.get(Mpu6050::GYROZ) - z_zero) * Mpu6050::TICKS_PER_DEGREE * RADIANS_PER_DEGREE;
+    w.x = (mpu.get(GYROX) - x_zero) * Mpu6050::TICKS_PER_DEGREE * RADIANS_PER_DEGREE;
+    w.y = (mpu.get(GYROY) - y_zero) * Mpu6050::TICKS_PER_DEGREE * RADIANS_PER_DEGREE;
+    w.z = (mpu.get(GYROZ) - z_zero) * Mpu6050::TICKS_PER_DEGREE * RADIANS_PER_DEGREE;
 
     // Compute the magnitude of the net angular velocity of the aircraft
     double w_norm = norm(w);
@@ -260,9 +260,9 @@ void Imu::run() {
     #ifdef ENABLE_GYRO_DRIFT_FILTER
     // construct a 3 dimensional vector representing the net acceration on the aircraft
     Vector net_accel; 
-    net_accel.x = (float)mpu.get(Mpu6050::ACCELX) - ACCELX_LEVEL_READING;
-    net_accel.y = (float)mpu.get(Mpu6050::ACCELY) - ACCELY_LEVEL_READING;
-    net_accel.z = (float)mpu.get(Mpu6050::ACCELZ) - ACCELZ_LEVEL_READING;
+    net_accel.x = (float)mpu.get(ACCELX) - ACCELX_LEVEL_READING;
+    net_accel.y = (float)mpu.get(ACCELY) - ACCELY_LEVEL_READING;
+    net_accel.z = (float)mpu.get(ACCELZ) - ACCELZ_LEVEL_READING;
 
     // compute the magnitude of the net acceration
     double accel_norm = norm(net_accel);
@@ -314,6 +314,11 @@ double Imu::pitch() {
 //  -180 < yaw < 180
 double Imu::yaw() {
   return z_angle;
+}
+
+int Imu::get_raw(uint8_t val)
+{
+  return mpu.get(val);
 }
 
 // computes then returns the product of two quaternions
@@ -380,14 +385,13 @@ void Imu::Mpu6050::fetch() {
   Wire.endTransmission();
 
   Wire.requestFrom(MPU6050_I2C_ADDRESS, 14);
-  while(Wire.available() < 14);
+  while (Wire.available() < 14);
   
-  for (int* ptr = data; ptr < data + 7; ++ptr) {
-    *ptr = Wire.read()<<8|Wire.read();
-  }
+  for (int *ptr = data; ptr < data + 7; ++ptr)
+    *ptr = Wire.read() << 8 | Wire.read();
 }
 
 // returns the requested raw Mpu6050 data
-int Imu::Mpu6050::get(int val) {
+int Imu::Mpu6050::get(uint8_t val) {
   return data[val];
 }

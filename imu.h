@@ -103,6 +103,16 @@ class Imu
     //  -180 < yaw < 180
     double yaw();
 
+    int get_raw(uint8_t val);
+
+    static constexpr uint8_t ACCELX = 0;
+    static constexpr uint8_t ACCELY = 1;
+    static constexpr uint8_t ACCELZ = 2;
+    static constexpr uint8_t TEMP = 3;
+    static constexpr uint8_t GYROX = 4;
+    static constexpr uint8_t GYROY = 5;
+    static constexpr uint8_t GYROZ = 6;
+
   private:
     static constexpr double RADIANS_PER_DEGREE = 0.01745329;
 
@@ -158,18 +168,10 @@ class Imu
         void fetch();
 
         // returns the requested raw Mpu6050 data
-        int get(int val);
+        int get(uint8_t val);
 
-        static constexpr int ACCELX = 0;
-        static constexpr int ACCELY = 1;
-        static constexpr int ACCELZ = 2;
-        static constexpr int TEMP = 3;
-        static constexpr int GYROX = 4;
-        static constexpr int GYROY = 5;
-        static constexpr int GYROZ = 6;
-
-        static constexpr double TICKS_PER_DEGREE = 0.0152671756;
-        static constexpr double TICKS_PER_G = 4096.0;
+        static constexpr float TICKS_PER_DEGREE = 0.0152672;
+        static constexpr float TICKS_PER_G = 4096.0;
 
       private:
         // Stores the raw data Mpu6050 sensor data retreived from the most 
@@ -179,7 +181,7 @@ class Imu
 
     Mpu6050 mpu;
 
-    int status_led;
+    uint8_t status_led;
 };
 
 #endif

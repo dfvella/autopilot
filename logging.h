@@ -3,12 +3,40 @@
 
 #include <Arduino.h>
 
+//#define PRINT_RAW_GYRO
+//#define PRINT_RAW_ACCEL
 //#define PRINT_IMU_ANGLES
 //#define PRINT_PPM_INPUTS
 //#define PRINT_MIXED_OUTPUTS
 //#define PRINT_PID_OUTPUTS
 //#define PRINT_FLIGHT_MODE
 //#define PRINT_LOOP_TIME
+
+#ifdef PRINT_RAW_GYRO
+#define DO_LOGGING
+#define print_raw_gyro() \
+    Serial.print("Raw gyro: "); \
+    Serial.print(imu.get_raw(Imu::GYROX)); \
+    Serial.print(" "); \
+    Serial.print(imu.get_raw(Imu::GYROY)); \
+    Serial.print(" "); \
+    Serial.println(imu.get_raw(Imu::GYROZ));
+#else
+#define print_raw_gyro()
+#endif 
+
+#ifdef PRINT_RAW_ACCEL
+#define DO_LOGGING
+#define print_raw_accel() \
+    Serial.print("Raw accel: "); \
+    Serial.print(imu.get_raw(Imu::ACCELX)); \
+    Serial.print(" "); \
+    Serial.print(imu.get_raw(Imu::ACCELY)); \
+    Serial.print(" "); \
+    Serial.println(imu.get_raw(Imu::ACCELZ));
+#else
+#define print_raw_accel()
+#endif 
 
 #ifdef PRINT_IMU_ANGLES
 #define DO_LOGGING
@@ -87,6 +115,8 @@
 #endif
 
 #define print_log() \
+    print_raw_gyro() \
+    print_raw_accel() \
     print_imu_angles() \
     print_ppm_inputs() \
     print_mixed_outputs() \
