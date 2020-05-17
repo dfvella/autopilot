@@ -62,126 +62,126 @@
 
 class Imu 
 {
-  public:
-    // constructor sets the intial orientation of the aircaft
-    // OPTIONAL: provide a pin number for a status led indicator
-    Imu(int pin);
+	public:
+		// constructor sets the intial orientation of the aircaft
+		// OPTIONAL: provide a pin number for a status led indicator
+		Imu(int8_t pin);
 
-    // deflault constructor disabled status led indicator
-    Imu();
+		// deflault constructor disabled status led indicator
+		Imu();
 
-    // Waits until the accelermeter does not detect significant motion.
-    // Takes calibration readings to determine the gyroscope raw readings
-    // while at rest. Then, zeroes the gyroscope with reference to the
-    // gravitational force vector caclulated from the accelermeter data. 
-    void calibrate();
+		// Waits until the accelermeter does not detect significant motion.
+		// Takes calibration readings to determine the gyroscope raw readings
+		// while at rest. Then, zeroes the gyroscope with reference to the
+		// gravitational force vector caclulated from the accelermeter data. 
+		void calibrate();
 
-    // Imediatly begins sampling accelermeter data and prints the average
-    // of these readings to the serial monitor. Mpu6050 should be placed
-    // on a level surface.
-    // NOTE: Serial.begin() must be called before using this function
-    void calibrate_accel();
+		// Imediatly begins sampling accelermeter data and prints the average
+		// of these readings to the serial monitor. Mpu6050 should be placed
+		// on a level surface.
+		// NOTE: Serial.begin() must be called before using this function
+		void calibrate_accel();
 
-    // Samples the MPU6050 data. Constructs a 3D vector representing the
-    // angular velcoity of the aircraft. Then, transforms this vector into
-    // a unit quaternion representing the rotation. Computes the product of 
-    // the last orientation and the rotation to determine the new orientation
-    // of the aircaft.
-    // NOTE: this function should be called at frequences between 10-250hz for
-    // accurate angle calculations
-    void run();
+		// Samples the MPU6050 data. Constructs a 3D vector representing the
+		// angular velcoity of the aircraft. Then, transforms this vector into
+		// a unit quaternion representing the rotation. Computes the product of 
+		// the last orientation and the rotation to determine the new orientation
+		// of the aircaft.
+		// NOTE: this function should be called at frequences between 10-250hz for
+		// accurate angle calculations
+		void run();
 
-    // Returns the roll angle of the aircaft in degrees
-    //  -180 < roll < 180
-    double roll();
+		// Returns the roll angle of the aircaft in degrees
+		//  -180 < roll < 180
+		float roll();
 
-    // Returns the pitch angle of the aircaft in degrees
-    //  -90 < pitch < 90
-    double pitch();
+		// Returns the pitch angle of the aircaft in degrees
+		//  -90 < pitch < 90
+		float pitch();
 
-    // Returns the yaw angle of the aircaft in degress
-    //  -180 < yaw < 180
-    double yaw();
+		// Returns the yaw angle of the aircaft in degress
+		//  -180 < yaw < 180
+		float yaw();
 
-    int get_raw(uint8_t val);
+		int32_t get_raw(uint8_t val);
 
-    static constexpr uint8_t ACCELX = 0;
-    static constexpr uint8_t ACCELY = 1;
-    static constexpr uint8_t ACCELZ = 2;
-    static constexpr uint8_t TEMP = 3;
-    static constexpr uint8_t GYROX = 4;
-    static constexpr uint8_t GYROY = 5;
-    static constexpr uint8_t GYROZ = 6;
+		static constexpr uint8_t ACCELX = 0;
+		static constexpr uint8_t ACCELY = 1;
+		static constexpr uint8_t ACCELZ = 2;
+		static constexpr uint8_t TEMP = 3;
+		static constexpr uint8_t GYROX = 4;
+		static constexpr uint8_t GYROY = 5;
+		static constexpr uint8_t GYROZ = 6;
 
-  private:
-    static constexpr double RADIANS_PER_DEGREE = 0.01745329;
+	private:
+		static constexpr float RADIANS_PER_DEGREE = 0.01745329;
 
-    struct Quaternion 
-    {
-        double w, x, y, z;
-    };
+		struct Quaternion 
+		{
+			float w, x, y, z;
+		};
 
-    // computes then returns the product of two quaternions
-    Quaternion product(const Quaternion &p, const Quaternion &q);
+		// computes then returns the product of two quaternions
+		Quaternion product(const Quaternion &p, const Quaternion &q);
 
-    // computes then returns the norm/length of a quaternion
-    double norm(const Quaternion &q);
+		// computes then returns the norm/length of a quaternion
+		float norm(const Quaternion &q);
 
-    struct Vector 
-    {
-      double x, y, z;
-    };
+		struct Vector 
+		{
+		float x, y, z;
+		};
 
-    // computes then returns the norm/length of a quaternion
-    double norm(const Vector &v);
+		// computes then returns the norm/length of a quaternion
+		float norm(const Vector &v);
 
-    // stores the aircaft's current orientation
-    Quaternion orientation;
+		// stores the aircaft's current orientation
+		Quaternion orientation;
 
-    // stores the aircaft's current roll, pitch, and yaw angles in degrees
-    double x_angle, y_angle, z_angle;
+		// stores the aircaft's current roll, pitch, and yaw angles in degrees
+		float x_angle, y_angle, z_angle;
 
-    // stores the aircaft's current roll and pitch angles in degrees
-    // caclulated only using the net acceleration on the aircaft
-    double x_angle_accel, y_angle_accel;
-    
-    // stores the gyroscope's raw angular velcoity readings while not moving
-    double x_zero, y_zero, z_zero;
+		// stores the aircaft's current roll and pitch angles in degrees
+		// caclulated only using the net acceleration on the aircaft
+		float x_angle_accel, y_angle_accel;
 
-    // stores the system clock time when orientation was last determined
-    unsigned long timer;
+		// stores the gyroscope's raw angular velcoity readings while not moving
+		float x_zero, y_zero, z_zero;
 
-    // excapsulates the I2C interface with the Mpu6050 sensor
-    class Mpu6050 
-    {
-      public:
-        Mpu6050();
+		// stores the system clock time when orientation was last determined
+		unsigned long timer;
 
-        // Begins I2C communication with the Mpu6050 sensor. Configures the
-        // Mpu6050 power settings, gyroscope accuracy, and accelermeter
-        // accuracy.
-        void begin();
+		// manages I2C interface with the Mpu6050 sensor
+		class Mpu6050 
+		{
+			public:
+				Mpu6050();
 
-        // Opens I2C communication with the Mpu6050 sensor. Retreieves raw
-        // gyroscope, accelermeter, and temperature data and stores it in the 
-        // private int array data.
-        void fetch();
+				// Begins I2C communication with the Mpu6050 sensor. Configures the
+				// Mpu6050 power settings, gyroscope accuracy, and accelermeter
+				// accuracy.
+				void begin();
 
-        // returns the requested raw Mpu6050 data
-        int get(uint8_t val);
+				// Opens I2C communication with the Mpu6050 sensor. Retreieves raw
+				// gyroscope, accelermeter, and temperature data and stores it in the 
+				// private int array data.
+				void fetch();
 
-        static constexpr float TICKS_PER_DEGREE = 0.0152672;
-        static constexpr float TICKS_PER_G = 4096.0;
+				// returns the requested raw Mpu6050 data
+				int32_t get(uint8_t val);
 
-      private:
-        // Stores the raw data Mpu6050 sensor data retreived from the most 
-        // recent fetch() call.
-        int data[7];
-    };
+				static constexpr float TICKS_PER_DEGREE = 0.0152672;
+				static constexpr float TICKS_PER_G = 4096.0;
 
-    Mpu6050 mpu;
+			private:
+				// Stores the raw data Mpu6050 sensor data retreived from the most 
+				// recent fetch() call.
+				int32_t data[7];
+		};
 
-    uint8_t status_led;
+	Mpu6050 mpu;
+
+	uint8_t status_led;
 };
 
-#endif
+#endif // IMU_H
