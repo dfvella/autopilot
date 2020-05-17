@@ -1,6 +1,6 @@
 #include "imu.h"
 
-// constructor sets the intial orientation to such that roll, pitch, yaw = 0
+// constructor sets the initial orientation to such that roll, pitch, yaw = 0
 Imu::Imu(int8_t pin) : status_led(pin) 
 {
 	orientation.w = 0.70710;
@@ -12,10 +12,10 @@ Imu::Imu(int8_t pin) : status_led(pin)
 // default constructor disables status led indicator
 Imu::Imu() : Imu(0) { }
 
-// Waits until the accelermeter does not detect significant motion.
+// Waits until the accelerometer does not detect significant motion.
 // Takes calibration readings to determine the gyroscope raw readings
 // while at rest. Then, zeroes the gyroscope with reference to the
-// gravitational force vector caclulated from the accelermeter data. 
+// gravitational force vector calculated from the accelerometer data. 
 void Imu::calibrate() 
 {
 	mpu.begin();
@@ -26,7 +26,7 @@ void Imu::calibrate()
 
 	int16_t x_prev, y_prev, z_prev;
   
-	// Wait until the derivative of the accerlation along each axis is below 
+	// Wait until the derivative of the acceleration along each axis is below 
 	// the MIN_ACCEL_DIFF for the duration of the PRE_CALIBRATION_REST_TIMER
 	timer = 0;
 	while (rest < PRE_CALIBRATION_REST_TIMER) 
@@ -47,7 +47,7 @@ void Imu::calibrate()
 		y_prev = mpu.get(ACCELY);
 		z_prev = mpu.get(ACCELZ);
 
-		// if the dirivative is higher than the threshold along any axis,
+		// if the derivative is higher than the threshold along any axis,
 		// set the counter back to 0
 		if (x_diff < MIN_ACCEL_DIFF 
 		&& y_diff < MIN_ACCEL_DIFF 
@@ -106,20 +106,20 @@ void Imu::calibrate()
 	accel_y /= GYRO_CALIBRATION_READINGS;
 	accel_z /= GYRO_CALIBRATION_READINGS;
 
-	// subtract the accelerometer level readings to get accurate accerlation values
+	// subtract the accelerometer level readings to get accurate acceleration values
 	accel_x -= ACCELX_LEVEL_READING;
 	accel_y -= ACCELY_LEVEL_READING;
 	accel_z -= ACCELZ_LEVEL_READING;
 
-	// Construct a 3 dimensional vector modeling the net accleration of the aircraft
+	// Construct a 3 dimensional vector modeling the net acceleration of the aircraft
 	Vector net_accel = { accel_x, accel_y, accel_z };
 
 	// Compute the roll pith angles using the net acceration vector
 	x_angle_accel = asin(accel_y / norm(net_accel)) * (1 / RADIANS_PER_DEGREE);
 	y_angle_accel = asin(accel_x / norm(net_accel)) * (1 / RADIANS_PER_DEGREE) * -1;
 
-	// If GRAVITY_REFERENCED_ZERO is enabled, set the intial orientation of the aircaft
-	// using the roll and pitch values computed from the net accerlation vector.
+	// If GRAVITY_REFERENCED_ZERO is enabled, set the initial orientation of the aircraft
+	// using the roll and pitch values computed from the net acceleration vector.
 	#ifdef ENABLE_GRAVITY_REFERENCED_ZERO
 
 	// Construct a unit quaternion representing the rotation around the roll axis required 
@@ -145,13 +145,13 @@ void Imu::calibrate()
 		0.0001 
 	};
 
-	// Apply the rotation to the aircaft's current orientation
+	// Apply the rotation to the aircraft's current orientation
 	orientation = product(orientation, initial_pitch);
 
 	#endif // ENABLE_GRAVITY_REFERENCED_ZERO
 }
 
-// Imediatly begins sampling accelermeter data and prints the average
+// Immediately begins sampling accelerometer data and prints the average
 // of these readings to the serial monitor. Mpu6050 should be placed
 // on a level surface.
 // NOTE: Serial.begin() must be called before using this function
@@ -192,7 +192,7 @@ void Imu::calibrate_accel()
 		}
 	}
 
-	// print the avrerages to the serial monitor
+	// print the averages to the serial monitor
 	Serial.print(" x: ");
 	Serial.print(x);
 	Serial.print(" y: ");
@@ -203,10 +203,10 @@ void Imu::calibrate_accel()
 }
 
 // Samples the MPU6050 data. Constructs a 3D vector representing the
-// angular velcoity of the aircraft. Then, transforms this vector into
+// angular velocity of the aircraft. Then, transforms this vector into
 // a unit quaternion representing the rotation. Computes the product of 
 // the last orientation and the rotation to determine the new orientation
-// of the aircaft.
+// of the aircraft.
 void Imu::run() 
 {
 	mpu.fetch();
@@ -242,7 +242,7 @@ void Imu::run()
 		rotation.y = (sin((t_delta * w_norm) / 2) * w.y) / w_norm;
 		rotation.z = (sin((t_delta * w_norm) / 2) * w.z) / w_norm;
 
-		// Apply the roation to the aircraft's current orientation 
+		// Apply the rotation to the aircraft's current orientation 
 		orientation = product(orientation, rotation);
 
 		// calculate roll, pitch, and yaw angles
@@ -275,24 +275,24 @@ void Imu::run()
 		// compute the magnitude of the net acceration
 		float accel_norm = norm(net_accel);
 
-		// compute the roll and pitch angles using the net accleration vector
+		// compute the roll and pitch angles using the net acceleration vector
 		float x_angle_accel_current = asin(net_accel.y / accel_norm) * (1 / RADIANS_PER_DEGREE);
 		float y_angle_accel_current = asin(net_accel.x / accel_norm) * (1 / RADIANS_PER_DEGREE) * -1;
 
-		// Apply an IIR filter to the acclerometer angles for noise reduction 
+		// Apply an IIR filter to the accelerometer angles for noise reduction 
 		x_angle_accel = x_angle_accel * ACCEL_FILTER_GAIN + 
 							x_angle_accel_current * (1 - ACCEL_FILTER_GAIN);
 		y_angle_accel = y_angle_accel * ACCEL_FILTER_GAIN + 
 							y_angle_accel_current * (1 - ACCEL_FILTER_GAIN);
 
 		// Apply the antidrift filter by computring a weighted average between the angle
-		// given by the gyroscope data and the angle given by the acclerometer data.
+		// given by the gyroscope data and the angle given by the accelerometer data.
 		x_angle = x_angle * DRIFT_FILTER_GAIN + x_angle_accel * (1 - DRIFT_FILTER_GAIN);
 		y_angle = y_angle * DRIFT_FILTER_GAIN + y_angle_accel * (1 - DRIFT_FILTER_GAIN);
 
 		#endif // ENABLE_GYRO_DRIFT_FILTER
 
-		// inevert axes if neccessary 
+		// inevert axes if necessary 
 		#ifdef INVERT_ROLL_AXIS
 		x_angle *= -1;
 		#endif    
@@ -305,14 +305,14 @@ void Imu::run()
 	}
 }
 
-// Returns the roll angle of the aircaft in degrees
+// Returns the roll angle of the aircraft in degrees
 //  -180 < roll < 180
 float Imu::roll() 
 {
 	return x_angle;
 }
 
-// Returns the pitch angle of the aircaft in degrees
+// Returns the pitch angle of the aircraft in degrees
 //  -90 < pitch < 90
 float Imu::pitch() 
 {
@@ -320,7 +320,7 @@ float Imu::pitch()
 }
 
 
-// Returns the yaw angle of the aircaft in degress
+// Returns the yaw angle of the aircraft in degrees
 //  -180 < yaw < 180
 float Imu::yaw() 
 {
@@ -367,7 +367,7 @@ float Imu::norm(const Vector &v)
 Imu::Mpu6050::Mpu6050() { }
 
 // Begins I2C communication with the Mpu6050 sensor. Configures the
-// Mpu6050 power settings, gyroscope accuracy, and accelermeter
+// Mpu6050 power settings, gyroscope accuracy, and accelerometer
 // accuracy.
 void Imu::Mpu6050::begin() 
 {
@@ -390,8 +390,8 @@ void Imu::Mpu6050::begin()
 	Wire.endTransmission();
 }
 
-// Opens I2C communication with the Mpu6050 sensor. Retreieves raw
-// gyroscope, accelermeter, and temperature data and stores it in the 
+// Opens I2C communication with the Mpu6050 sensor. Retrieves raw
+// gyroscope, accelerometer, and temperature data and stores it in the 
 // private int array data.
 void Imu::Mpu6050::fetch() 
 {
