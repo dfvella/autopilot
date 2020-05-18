@@ -30,7 +30,7 @@ class ppmDecoder
 
         // Returns the pulsewidth of the corresponding receiver channel 
         // in milliseconds.
-        uint16_t get(uint8_t chan);
+        int16_t get(uint8_t chan);
 
         // Receiver channels used to index the data array
         static constexpr uint8_t ARL = 2;
