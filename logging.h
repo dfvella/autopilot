@@ -89,9 +89,9 @@
 #define DO_LOGGING
 #define print_pid_outputs() \
     Serial.print("PID out: "); \
-    Serial.print(servo[RTS]->get()); \
+    Serial.print(ele_out); \
     Serial.print(" "); \
-    Serial.println(servo[RBS]->get());
+    Serial.println(arl_out);
 #else 
 #define print_pid_outputs()
 #endif
