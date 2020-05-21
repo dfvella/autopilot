@@ -13,7 +13,8 @@ void Servo::set(int signal_in)
     if (signal_in < MIN_THROW)
         signal_in = MIN_THROW;
 
-    signal = signal_in;
+    if (abs(signal_in - signal) > 10)
+        signal = signal_in;
 }
 
 int Servo::get()
@@ -65,7 +66,11 @@ void Servo::write_all(Servo* servo[], const int num)
     }
 
     for (int i = 0; i < num; ++i)
+    {
         sorted_servo[i]->high();
+        unsigned long temp = micros();
+        while (micros() - temp < 20);
+    }
 
     for (int i = 0; i < num; ++i) 
         sorted_servo[i]->low();
