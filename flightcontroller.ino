@@ -83,15 +83,15 @@ void loop()
     ppm.sync();
 
     fmode = AUTOCLIMB;
-    if (ppm.get(ppmDecoder::AUX) < 1700)
+    if (ppm.get(ppmDecoder::AUX) < 1700.0)
       fmode = AUTOLEVEL;
-    if (ppm.get(ppmDecoder::AUX) < 1300)
+    if (ppm.get(ppmDecoder::AUX) < 1300.0)
       fmode = PASSTHRU;
   }
   if (state == 1)
   {
-    double roll_target = (1500 - ppm.get(ppmDecoder::ARL)) * 0.04;
-    double pitch_target = (1500 - ppm.get(ppmDecoder::ELE)) * 0.04;
+    double roll_target = (1500.0 - ppm.get(ppmDecoder::ARL)) * 0.04;
+    double pitch_target = (1500.0 - ppm.get(ppmDecoder::ELE)) * 0.04;
     if (fmode == PASSTHRU)
     {
       arl_out = ppm.get(ppmDecoder::ARL);
@@ -105,9 +105,9 @@ void loop()
     rud_out = ppm.get(ppmDecoder::RUD);
 
     brk_out = 0;
-    if (ppm.get(ppmDecoder::GER) < 1700)
+    if (ppm.get(ppmDecoder::GER) < 1700.0)
       brk_out = 100;
-    if (ppm.get(ppmDecoder::GER) < 1300)
+    if (ppm.get(ppmDecoder::GER) < 1300.0)
       brk_out = 400;
 
   }

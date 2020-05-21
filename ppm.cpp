@@ -28,7 +28,7 @@ void ppmDecoder::sync()
 
 // Returns the pulsewidth of the corresponding receiver channel 
 // in milliseconds.
-int16_t ppmDecoder::get(uint8_t chan) 
+uint16_t ppmDecoder::get(uint8_t chan) 
 {
     int val;
 
