@@ -47,7 +47,7 @@ class ppmDecoder
         volatile uint16_t data[PPM_DATA_ARRAY_SIZE];
 
         volatile uint16_t* chan_ptr;
-        uint16_t* sync_ptr;
+        volatile uint16_t* sync_ptr;
 
         volatile unsigned long timer;
 };
