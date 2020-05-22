@@ -3,6 +3,7 @@
 #include "imu.h"
 #include "ppm.h"
 #include "servo.h"
+#include "mix.h"
 
 #include "logging.h"
 
