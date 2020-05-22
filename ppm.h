@@ -44,12 +44,12 @@ class ppmDecoder
         void toggle();
 
     private:
-        uint16_t data[PPM_DATA_ARRAY_SIZE];
+        volatile uint16_t data[PPM_DATA_ARRAY_SIZE];
 
-        uint16_t* chan_ptr;
+        volatile uint16_t* chan_ptr;
         uint16_t* sync_ptr;
 
-        unsigned long timer;
+        volatile unsigned long timer;
 };
 
 // Associates an instance of the ppmDecoder class with a pin.
