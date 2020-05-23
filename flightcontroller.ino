@@ -11,9 +11,11 @@
 //#define CALIBRATE_ACCELEROMETER
 //#define DISABLE_SERVOS
 
+#define SERIAL_BAUD_RATE 9600
+
 // units: degrees
-#define MAX_ROLL_ANGLE 40
-#define MAX_PITCH_ANGLE 40
+#define MAX_ROLL_ANGLE 60.0
+#define MAX_PITCH_ANGLE 60.0
 
 // units microseconds
 #define AUTOCLIMB_TRIM 75
@@ -23,29 +25,39 @@
 #define PID_PITCH_TRIM -1
 
 unsigned long timer = 0;
+const int LOOP_TIME = 5000; // microseconds
 
-const int status_led = 13;
+const uint8_t ppm_pin = 2;
+const uint8_t thr_pin = 4;
+const uint8_t rts_pin = 5;
+const uint8_t rbs_pin = 6;
+const uint8_t lts_pin = 7;
+const uint8_t lbs_pin = 8;
+const uint8_t led_pin = 13;
 
-Imu imu(status_led);
+const uint8_t THR = 0;
+const uint8_t RTS = 1;
+const uint8_t RBS = 2;
+const uint8_t LTS = 3;
+const uint8_t LBS = 4;
+const uint8_t NUM_SERVOS = 5;
+Servo *servo[NUM_SERVOS];
+
+const uint16_t SWITCH_POS1 = 1300;
+const uint16_t SWITCH_POS2 = 1700;
+
+Imu imu(led_pin);
 ppmDecoder ppm;
-
-const int THR = 0;
-const int RTS = 1;
-const int RBS = 2;
-const int LTS = 3;
-const int LBS = 4;
-const int NUM_SERVOS = 5;
-Servo* servo[NUM_SERVOS];
 
 PIDcontroller roll_pid(12, 0, 0, 1);
 PIDcontroller pitch_pid(24, 0, 0.5, 1);
 
 void setup() 
 {
-  pinMode(status_led, OUTPUT);
+  pinMode(led_pin, OUTPUT);
 
   #ifdef SERIAL_CONNECTION
-  Serial.begin(9600);
+  Serial.begin(SERIAL_BAUD_RATE);
   Serial.println("Serial connection");
   #endif
 
@@ -55,45 +67,48 @@ void setup()
   imu.calibrate();
   #endif
 
-  assignPpmDecoderToPin(ppm, 2);
+  assignPpmDecoderToPin(ppm, ppm_pin);
 
-  servo[THR] = new Servo(4);
-  servo[RTS] = new Servo(5);
-  servo[RBS] = new Servo(6);
-  servo[LTS] = new Servo(7);
-  servo[LBS] = new Servo(8);
+  servo[THR] = new Servo(thr_pin);
+  servo[RTS] = new Servo(rts_pin);
+  servo[RBS] = new Servo(rbs_pin);
+  servo[LTS] = new Servo(lts_pin);
+  servo[LBS] = new Servo(lbs_pin);
   
-  digitalWrite(status_led, LOW);
+  digitalWrite(led_pin, LOW);
   timer = micros();
 }
 
 void loop() 
 {
-  static int state = 0;
-  static int fmode = 0;
+  enum State : uint8_t { PPMSYNC, PIDCALC, SERVOSET, SERVOWRITE };
+  static State state = PPMSYNC;
 
-  const int PASSTHRU = 0;
-  const int AUTOLEVEL = 1;
-  const int AUTOCLIMB = 2;
+  enum FlightMode : uint8_t { PASSTHRU, AUTOLEVEL, AUTOCLIMB };
+  static FlightMode fmode;
 
-  static int arl_out, ele_out, rud_out, brk_out;
+  static int16_t arl_out, ele_out, rud_out, brk_out;
   
   imu.run();
 
-  if (state == 0)
+  if (state == PPMSYNC)
   {
     ppm.sync();
 
     fmode = AUTOCLIMB;
-    if (ppm.get(ppmDecoder::AUX) < 1700.0)
+    if (ppm.get(ppmDecoder::AUX) < SWITCH_POS2)
       fmode = AUTOLEVEL;
-    if (ppm.get(ppmDecoder::AUX) < 1300.0)
+    if (ppm.get(ppmDecoder::AUX) < SWITCH_POS1)
       fmode = PASSTHRU;
   }
-  if (state == 1)
+  if (state == PIDCALC)
   {
-    double roll_target = (1500.0 - ppm.get(ppmDecoder::ARL)) * 0.04;
-    double pitch_target = (1500.0 - ppm.get(ppmDecoder::ELE)) * 0.04;
+    float roll_target = (float)Servo::CENTER - ppm.get(ppmDecoder::ARL);
+    float pitch_target = (float)Servo::CENTER - ppm.get(ppmDecoder::ELE);
+
+    roll_target *= MAX_ROLL_ANGLE / 1000;
+    pitch_target *= MAX_PITCH_ANGLE / 1000;
+
     if (fmode == PASSTHRU)
     {
       arl_out = ppm.get(ppmDecoder::ARL);
@@ -101,53 +116,57 @@ void loop()
     }
     else
     {
-      arl_out = roll_pid.calculate(imu.roll() - roll_target + PID_ROLL_TRIM) + 1500;
-      ele_out = pitch_pid.calculate(imu.pitch() - pitch_target + PID_PITCH_TRIM) + 1500;
+      arl_out = roll_pid.calculate(imu.roll() - roll_target + PID_ROLL_TRIM);
+      ele_out = pitch_pid.calculate(imu.pitch() - pitch_target + PID_PITCH_TRIM);
+
+      arl_out += Servo::CENTER;
+      ele_out += Servo::CENTER;
     }
     rud_out = ppm.get(ppmDecoder::RUD);
 
     brk_out = 0;
-    if (ppm.get(ppmDecoder::GER) < 1700.0)
+    if (ppm.get(ppmDecoder::GER) < SWITCH_POS2)
       brk_out = 100;
-    if (ppm.get(ppmDecoder::GER) < 1300.0)
+    if (ppm.get(ppmDecoder::GER) < SWITCH_POS1)
       brk_out = 400;
 
   }
-  if (state == 2)
+  if (state == SERVOSET)
   {
     servo[THR]->set(ppm.get(ppmDecoder::THR));
 
-    int trim = 0;
+    int16_t trim = 0;
     if (fmode == AUTOCLIMB)
       trim = AUTOCLIMB_TRIM;
 
-    // add definitions for max and min throw for each channel
     servo[RTS]->set(Mix::right_top(arl_out, ele_out, rud_out, brk_out) + trim);
     servo[RBS]->set(Mix::right_bottom(arl_out, ele_out, rud_out, brk_out) - trim);
     servo[LTS]->set(Mix::left_top(arl_out, ele_out, rud_out, brk_out) - trim);
     servo[LBS]->set(Mix::left_bottom(arl_out, ele_out, rud_out, brk_out) + trim);
   }
-  if (state == 3)
+  if (state == SERVOWRITE)
   {
     #ifndef DISABLE_SERVOS
     Servo::write_all(servo, NUM_SERVOS);
     #endif 
   }
 
-  if (state == 3) 
-    state = 0;
+  if (state == SERVOWRITE) 
+    state = PPMSYNC;
   else
-    ++state;
+    state = (State)(state + 1);
 
   #ifdef PRINT_LOOP_TIME
-  int loop_time = micros() - timer;
+  uint16_t loop_time = micros() - timer;
   #endif
 
   #ifdef DO_LOGGING
   print_log()
   #endif
 
-  if (micros() - timer > 5000) digitalWrite(status_led, HIGH);
-  while (micros() - timer < 5000);
+  if (micros() - timer > LOOP_TIME) 
+    digitalWrite(led_pin, HIGH);
+
+  while (micros() - timer < LOOP_TIME);
   timer = micros();
 }
