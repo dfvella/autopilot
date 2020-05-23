@@ -4,6 +4,7 @@
 #include "ppm.h"
 #include "servo.h"
 #include "mix.h"
+#include "pid.h"
 
 #include "logging.h"
 
