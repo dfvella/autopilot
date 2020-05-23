@@ -95,3 +95,8 @@ void Servo::write_all(Servo* servo[], const uint8_t num)
     for (uint8_t i = 0; i < num; ++i) 
         sorted_servo[i]->low();
 }
+
+uint16_t Servo::limit(uint16_t signal_in)
+{
+    return constrain(signal_in, Servo::MIN_THROW, Servo::MAX_THROW);
+}

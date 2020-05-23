@@ -28,6 +28,8 @@ class Servo
         void write(uint16_t signal_in);
         static void write_all(Servo* servo[], const uint8_t num);
 
+        static uint16_t limit(uint16_t signal_in);
+
         static constexpr uint16_t MAX_THROW = 1800;
         static constexpr uint16_t MIN_THROW = 1200;
         static constexpr uint16_t CENTER = 1500;
