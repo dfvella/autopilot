@@ -1,45 +1,39 @@
+/*
+ * Functions that convert the raw aileron, elevator, rudder, and brake
+ * inputs and convert them to outputs to the split elevons 
+ */
+
 #include "mix.h"
+#include "servo.h"
 
-int Mix::right_top(int arl, int ele, int rud, int brk)
+uint16_t Mix::right_top(uint16_t arl, uint16_t ele, uint16_t rud, uint16_t brk)
 {
-    ele -= 1500;
-    rud -= 1500;
+    if (rud > Servo::CENTER)
+        rud = Servo::CENTER;
 
-    if (rud > 0)
-        rud = 0;
-
-    return 3000 - arl - ele - rud + brk;
+    return (4 * Servo::CENTER) - arl - ele - rud + brk;
 }
 
-int Mix::right_bottom(int arl, int ele, int rud, int brk)
+uint16_t Mix::right_bottom(uint16_t arl, uint16_t ele, uint16_t rud, uint16_t brk)
 {
-    ele -= 1500;
-    rud -= 1500;
-
-    if (rud > 0)
-        rud = 0;
+    if (rud > Servo::CENTER)
+        rud = Servo::CENTER;
 
     return arl + ele - rud + brk;
 }
 
-int Mix::left_top(int arl, int ele, int rud, int brk)
+uint16_t Mix::left_top(uint16_t arl, uint16_t ele, uint16_t rud, uint16_t brk)
 {
-    ele -= 1500;
-    rud -= 1500;
+    if (rud < Servo::CENTER)
+        rud = Servo::CENTER;
 
-    if (rud < 0)
-        rud = 0;
-
-    return 1500 - ((arl - ele + rud) - 1500) - brk;
+    return Servo::CENTER - ((arl - ele + rud) - Servo::CENTER) - brk;
 }
 
-int Mix::left_bottom(int arl, int ele, int rud, int brk)
+uint16_t Mix::left_bottom(uint16_t arl, uint16_t ele, uint16_t rud, uint16_t brk)
 {
-    ele -= 1500;
-    rud -= 1500;
+    if (rud < Servo::CENTER)
+        rud = Servo::CENTER;
 
-    if (rud < 0)
-        rud = 0;
-
-    return arl - ele - rud - brk;
+    return (2 * Servo::CENTER) + arl - ele - rud - brk;
 }
