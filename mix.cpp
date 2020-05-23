@@ -1,6 +1,6 @@
 #include "mix.h"
 
-int map_right_top(int arl, int ele, int rud, int brk)
+int Mix::right_top(int arl, int ele, int rud, int brk)
 {
     ele -= 1500;
     rud -= 1500;
@@ -11,7 +11,7 @@ int map_right_top(int arl, int ele, int rud, int brk)
     return 3000 - arl - ele - rud + brk;
 }
 
-int map_right_bottom(int arl, int ele, int rud, int brk)
+int Mix::right_bottom(int arl, int ele, int rud, int brk)
 {
     ele -= 1500;
     rud -= 1500;
@@ -22,7 +22,7 @@ int map_right_bottom(int arl, int ele, int rud, int brk)
     return arl + ele - rud + brk;
 }
 
-int map_left_top(int arl, int ele, int rud, int brk)
+int Mix::left_top(int arl, int ele, int rud, int brk)
 {
     ele -= 1500;
     rud -= 1500;
@@ -33,7 +33,7 @@ int map_left_top(int arl, int ele, int rud, int brk)
     return 1500 - ((arl - ele + rud) - 1500) - brk;
 }
 
-int map_left_bottom(int arl, int ele, int rud, int brk)
+int Mix::left_bottom(int arl, int ele, int rud, int brk)
 {
     ele -= 1500;
     rud -= 1500;
