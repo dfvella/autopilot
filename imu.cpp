@@ -409,5 +409,5 @@ void Imu::Mpu6050::fetch()
 // returns the requested raw Mpu6050 data
 int32_t Imu::Mpu6050::get(uint8_t val) 
 {
-  return data[val];
+    return data[val];
 }
