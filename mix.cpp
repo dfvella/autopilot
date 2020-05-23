@@ -11,7 +11,9 @@ uint16_t Mix::right_top(uint16_t arl, uint16_t ele, uint16_t rud, uint16_t brk)
     if (rud > Servo::CENTER)
         rud = Servo::CENTER;
 
-    return (4 * Servo::CENTER) - arl - ele - rud + brk;
+    uint16_t output = (4 * Servo::CENTER) - arl - ele - rud + brk;
+
+    return Servo::limit(output);
 }
 
 uint16_t Mix::right_bottom(uint16_t arl, uint16_t ele, uint16_t rud, uint16_t brk)
@@ -19,7 +21,9 @@ uint16_t Mix::right_bottom(uint16_t arl, uint16_t ele, uint16_t rud, uint16_t br
     if (rud > Servo::CENTER)
         rud = Servo::CENTER;
 
-    return arl + ele - rud + brk;
+    uint16_t output = arl + ele - rud + brk;
+
+    return Servo::limit(output);
 }
 
 uint16_t Mix::left_top(uint16_t arl, uint16_t ele, uint16_t rud, uint16_t brk)
@@ -27,7 +31,9 @@ uint16_t Mix::left_top(uint16_t arl, uint16_t ele, uint16_t rud, uint16_t brk)
     if (rud < Servo::CENTER)
         rud = Servo::CENTER;
 
-    return Servo::CENTER - ((arl - ele + rud) - Servo::CENTER) - brk;
+    uint16_t output = Servo::CENTER - ((arl - ele + rud) - Servo::CENTER) - brk;
+
+    return Servo::limit(output);
 }
 
 uint16_t Mix::left_bottom(uint16_t arl, uint16_t ele, uint16_t rud, uint16_t brk)
@@ -35,5 +41,7 @@ uint16_t Mix::left_bottom(uint16_t arl, uint16_t ele, uint16_t rud, uint16_t brk
     if (rud < Servo::CENTER)
         rud = Servo::CENTER;
 
-    return (2 * Servo::CENTER) + arl - ele - rud - brk;
+    uint16_t output = (2 * Servo::CENTER) + arl - ele - rud - brk;
+
+    return Servo::limit(output);
 }

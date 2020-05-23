@@ -122,10 +122,10 @@ void loop()
       trim = AUTOCLIMB_TRIM;
 
     // add definitions for max and min throw for each channel
-    servo[RTS]->set(constrain(Mix::right_top(arl_out, ele_out, rud_out, brk_out), 1200, 1800) + trim);
-    servo[RBS]->set(constrain(Mix::right_bottom(arl_out, ele_out, rud_out, brk_out), 1200, 1800) - trim);
-    servo[LTS]->set(constrain(Mix::left_top(arl_out, ele_out, rud_out, brk_out), 1200, 1800) - trim);
-    servo[LBS]->set(constrain(Mix::left_bottom(arl_out, ele_out, rud_out, brk_out), 1200, 1800) + trim);
+    servo[RTS]->set(Mix::right_top(arl_out, ele_out, rud_out, brk_out) + trim);
+    servo[RBS]->set(Mix::right_bottom(arl_out, ele_out, rud_out, brk_out) - trim);
+    servo[LTS]->set(Mix::left_top(arl_out, ele_out, rud_out, brk_out) - trim);
+    servo[LBS]->set(Mix::left_bottom(arl_out, ele_out, rud_out, brk_out) + trim);
   }
   if (state == 3)
   {
