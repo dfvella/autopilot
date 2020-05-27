@@ -3,6 +3,8 @@
 
 #include <Arduino.h>
 
+#define SERIAL_BAUD_RATE 9600
+
 //#define PRINT_RAW_GYRO
 //#define PRINT_RAW_ACCEL
 //#define PRINT_IMU_ANGLES
