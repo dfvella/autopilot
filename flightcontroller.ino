@@ -9,16 +9,26 @@
 #include "logging.h"
 
 //#define CALIBRATE_ACCELEROMETER
-//#define DISABLE_SERVOS
-
-#define SERIAL_BAUD_RATE 9600
+#define ENABLE_SERVOS
 
 // units: degrees
 #define MAX_ROLL_ANGLE 60.0
 #define MAX_PITCH_ANGLE 60.0
 
-// units microseconds
-#define AUTOCLIMB_TRIM 75
+// Roll PID gains
+#define ROLL_P 12
+#define ROLL_I 0
+#define ROLL_D 0.5 // was 0
+#define ROLL_I_MAX 1
+
+// Pitch PID gains
+#define PITCH_P 12 // was 24
+#define PITCH_I 0
+#define PITCH_D 0.5
+#define PITCH_I_MAX 1
+
+// units: degrees
+#define AUTOCLIMB_TRIM 15
 
 // units: degrees
 #define PID_ROLL_TRIM 2
@@ -49,8 +59,8 @@ const uint16_t SWITCH_POS2 = 1700;
 Imu imu(led_pin);
 ppmDecoder ppm;
 
-PIDcontroller roll_pid(12, 0, 0, 1);
-PIDcontroller pitch_pid(24, 0, 0.5, 1);
+PIDcontroller roll_pid(ROLL_P, ROLL_I, ROLL_D, ROLL_I_MAX);
+PIDcontroller pitch_pid(PITCH_P, PITCH_I, PITCH_D, PITCH_I_MAX);
 
 void setup() 
 {
@@ -116,8 +126,12 @@ void loop()
         }
         else
         {
+            uint16_t trim = 0;
+            if (fmode == AUTOCLIMB)
+                trim = AUTOCLIMB_TRIM;
+
             arl_out = roll_pid.calculate(imu.roll() - roll_target + PID_ROLL_TRIM);
-            ele_out = pitch_pid.calculate(imu.pitch() - pitch_target + PID_PITCH_TRIM);
+            ele_out = pitch_pid.calculate(imu.pitch() - pitch_target + PID_PITCH_TRIM - trim);
 
             arl_out += Servo::CENTER;
             ele_out += Servo::CENTER;
@@ -135,18 +149,14 @@ void loop()
     {
         servo[THR]->set(ppm.get(ppmDecoder::THR));
 
-        int16_t trim = 0;
-        if (fmode == AUTOCLIMB)
-            trim = AUTOCLIMB_TRIM;
-
-        servo[RTS]->set(Mix::right_top(arl_out, ele_out, rud_out, brk_out) + trim);
-        servo[RBS]->set(Mix::right_bottom(arl_out, ele_out, rud_out, brk_out) - trim);
-        servo[LTS]->set(Mix::left_top(arl_out, ele_out, rud_out, brk_out) - trim);
-        servo[LBS]->set(Mix::left_bottom(arl_out, ele_out, rud_out, brk_out) + trim);
+        servo[RTS]->set(Mix::right_top(arl_out, ele_out, rud_out, brk_out));
+        servo[RBS]->set(Mix::right_bottom(arl_out, ele_out, rud_out, brk_out));
+        servo[LTS]->set(Mix::left_top(arl_out, ele_out, rud_out, brk_out));
+        servo[LBS]->set(Mix::left_bottom(arl_out, ele_out, rud_out, brk_out));
     }
     if (state == SERVOWRITE)
     {
-        #ifndef DISABLE_SERVOS
+        #ifdef ENABLE_SERVOS
         Servo::write_all(servo, NUM_SERVOS);
         #endif 
     }
