@@ -133,8 +133,8 @@ void loop()
             arl_out = roll_pid.calculate(imu.roll() - roll_target + PID_ROLL_TRIM);
             ele_out = pitch_pid.calculate(imu.pitch() - pitch_target + PID_PITCH_TRIM - trim);
 
-            arl_out += Servo::CENTER;
-            ele_out += Servo::CENTER;
+            arl_out = Servo::limit(arl_out + Servo::CENTER);
+            ele_out = Servo::limit(ele_out + Servo::CENTER);
         }
         rud_out = ppm.get(ppmDecoder::RUD);
 
