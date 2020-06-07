@@ -28,9 +28,13 @@ with open('serial.log', 'r') as f:
         z.append(float(Z))
 
 
-plt.plot(t,x)
-plt.plot(t,y)
-plt.plot(t,z)
+plt.plot(t,x,label='roll')
+plt.plot(t,y,label='pitch')
+plt.plot(t,z,label='yaw')
+
+ax = plt.gca()
+ax.set_ylim([-1,1])
+ax.legend()
 
 plt.title('Gyro Angle')
 plt.xlabel('time (sec)')
