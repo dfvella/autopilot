@@ -28,6 +28,7 @@ void Imu::calibrate()
 
     // Wait until the derivative of the acceleration along each axis is below 
     // the MIN_ACCEL_DIFF for the duration of the PRE_CALIBRATION_REST_TIMER
+    #ifdef WAIT_FOR_REST
     timer = 0;
     while (rest < PRE_CALIBRATION_REST_TIMER) 
     {
@@ -61,6 +62,7 @@ void Imu::calibrate()
                 digitalWrite(status_led, led_state);
         }
     }
+    #endif
 
     x_zero = 0;
     y_zero = 0;

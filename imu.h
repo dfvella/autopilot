@@ -33,7 +33,7 @@
 // Instead, the net acceleration vector will be used to determine initial
 // orientation.
 #define ENABLE_GRAVITY_REFERENCED_ZERO
-
+#define WAIT_FOR_REST
 
 
 // ********** MPU6050 I2C REGISTER ADDRESSES **********
