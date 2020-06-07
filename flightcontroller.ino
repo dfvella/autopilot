@@ -16,19 +16,19 @@
 #define MAX_PITCH_ANGLE 60.0
 
 // Roll PID gains
-#define ROLL_P 12
+#define ROLL_P 10 // was 12
 #define ROLL_I 0
 #define ROLL_D 0.5 // was 0
 #define ROLL_I_MAX 1
 
 // Pitch PID gains
-#define PITCH_P 12 // was 24
+#define PITCH_P 6 // was 12
 #define PITCH_I 0
 #define PITCH_D 0.5
 #define PITCH_I_MAX 1
 
 // units: degrees
-#define AUTOCLIMB_TRIM 15
+#define AUTOCLIMB_TRIM 20 // was 15
 
 // units: degrees
 #define PID_ROLL_TRIM 2
@@ -176,6 +176,8 @@ void loop()
 
     if (micros() - timer > LOOP_TIME) 
         digitalWrite(led_pin, HIGH);
+    else
+        digitalWrite(led_pin, LOW);
 
     while (micros() - timer < LOOP_TIME);
     timer = micros();
