@@ -7,7 +7,7 @@
 #include "servo.h"
 
 PIDcontroller::PIDcontroller(float p_in, float i_in, float d_in, float i_max_in) 
-: p(p_in), i(i_in), d(d_in), i_max(i_max_in) { }
+    : p(p_in), i(i_in), d(d_in), i_max(i_max_in), i_output(0) { }
 
 float PIDcontroller::calculate(float error)
 {
@@ -26,7 +26,7 @@ float PIDcontroller::calculate(float error)
 
         float output = p * error;
 
-        i_output += t_delta * error;
+        i_output += (t_delta / MICROSEC_PER_SEC) * error;
 
         if (i_output > i_max) 
             i_output = i_max;

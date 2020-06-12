@@ -8,7 +8,7 @@
 
 #include <Arduino.h>
 
-#define MICROSEC_PER_SEC 1000000
+#define MICROSEC_PER_SEC 1000000.0
 
 class PIDcontroller
 {
