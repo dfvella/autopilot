@@ -16,19 +16,19 @@
 #define MAX_PITCH_ANGLE 60.0
 
 // Roll PID gains
-#define ROLL_P 10 // was 12
+#define ROLL_P 8 // was 10,12
 #define ROLL_I 0
 #define ROLL_D 0.5 // was 0
 #define ROLL_I_MAX 1
 
 // Pitch PID gains
-#define PITCH_P 6 // was 12
-#define PITCH_I 0
+#define PITCH_P 4 // was 6, 12
+#define PITCH_I 2 // was 0
 #define PITCH_D 0.5
-#define PITCH_I_MAX 1
+#define PITCH_I_MAX 50 // was 1
 
 // units: degrees
-#define AUTOCLIMB_TRIM 20 // was 15
+#define AUTOCLIMB_TRIM 15 // was 20, 15
 
 // units: degrees
 #define PID_ROLL_TRIM 2
