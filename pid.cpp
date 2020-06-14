@@ -28,13 +28,9 @@ float PIDcontroller::calculate(float error)
 
         i_output += (t_delta / MICROSEC_PER_SEC) * error;
 
-        if (i_output > i_max) 
-            i_output = i_max;
+        i_output = constrain(i_output, (-1 * i_max) / i, i_max / i);
 
-        if (i_output < -1 * i_max) 
-            i_output = -1 * i_max;
-
-        output += i * i_output;
+        output += constrain(i * i_output, -1 * i_max, i_max);
 
         output += d * ((error - prev_error) / t_delta) * MICROSEC_PER_SEC;
         prev_error = error;
