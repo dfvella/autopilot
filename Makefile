@@ -1,4 +1,4 @@
-TARGET = flightcontroller.ino
+TARGET = autopilot/autopilot.ino
 BOARD = arduino:avr:nano
 PORT = /dev/ttyUSB0
 
