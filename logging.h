@@ -7,7 +7,7 @@
 
 //#define PRINT_RAW_GYRO
 //#define PRINT_RAW_ACCEL
-#define PRINT_IMU_ANGLES
+//#define PRINT_IMU_ANGLES
 //#define PRINT_PPM_INPUTS
 //#define PRINT_MIXED_OUTPUTS
 //#define PRINT_PID_OUTPUTS

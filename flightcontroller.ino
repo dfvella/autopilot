@@ -23,9 +23,9 @@
 
 // Pitch PID gains
 #define PITCH_P 4 // was 6, 12
-#define PITCH_I 2 // was 0
+#define PITCH_I 8 // was 0
 #define PITCH_D 0.5
-#define PITCH_I_MAX 50 // was 1
+#define PITCH_I_MAX 70 // was 1
 
 // units: degrees
 #define AUTOCLIMB_TRIM 15 // was 20, 15
