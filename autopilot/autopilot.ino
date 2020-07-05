@@ -34,6 +34,9 @@
 #define PID_ROLL_TRIM 2
 #define PID_PITCH_TRIM -1
 
+#define BRAKE_NOTCH_1 100
+#define BRAKE_NOTCH_2 400
+
 unsigned long timer = 0;
 const int LOOP_TIME = 5000; // microseconds
 
@@ -71,10 +74,10 @@ void setup()
     Serial.println("Serial connection");
     #endif
 
-    #ifdef CALIBRATE_ACCELEROMETER
-    imu.calibrate_accel();
-    #else
+    #ifndef CALIBRATE_ACCELEROMETER
     imu.calibrate();
+    #else
+    imu.calibrate_accel();
     #endif
 
     assignPpmDecoderToPin(ppm, ppm_pin);
@@ -91,80 +94,93 @@ void setup()
 
 void loop() 
 {
-    enum State : uint8_t { PPMSYNC, PIDCALC, SERVOSET, SERVOWRITE };
-    static State state = PPMSYNC;
+    static enum State : uint8_t {
+        PPMSYNC,
+        PIDCALC,
+        SERVOSET,
+        SERVOWRITE
+    } state = PPMSYNC;
 
-    enum FlightMode : uint8_t { PASSTHRU, AUTOLEVEL, AUTOCLIMB };
-    static FlightMode fmode;
+    static enum FlightMode : uint8_t {
+        PASSTHRU,
+        AUTOLEVEL,
+        AUTOCLIMB
+    } fmode;
 
     static int16_t arl_out, ele_out, rud_out, brk_out;
 
+    float roll_target, pitch_target;
+
     imu.run();
 
-    if (state == PPMSYNC)
+    switch (state)
     {
-        ppm.sync();
+        case PPMSYNC:
+            ppm.sync();
 
-        fmode = AUTOCLIMB;
-        if (ppm.get(ppmDecoder::AUX) < SWITCH_POS2)
-            fmode = AUTOLEVEL;
-        if (ppm.get(ppmDecoder::AUX) < SWITCH_POS1)
-            fmode = PASSTHRU;
+            fmode = AUTOCLIMB;
+            if (ppm.get(ppmDecoder::AUX) < SWITCH_POS2)
+                fmode = AUTOLEVEL;
+            if (ppm.get(ppmDecoder::AUX) < SWITCH_POS1)
+                fmode = PASSTHRU;
+
+            state = PIDCALC;
+        break;
+
+        case PIDCALC:
+            roll_target = (float)Servo::CENTER - ppm.get(ppmDecoder::ARL);
+            pitch_target = (float)Servo::CENTER - ppm.get(ppmDecoder::ELE);
+
+            roll_target *= MAX_ROLL_ANGLE / 1000;
+            pitch_target *= MAX_PITCH_ANGLE / 1000;
+
+            if (fmode == PASSTHRU)
+            {
+                arl_out = ppm.get(ppmDecoder::ARL);
+                ele_out = ppm.get(ppmDecoder::ELE);
+            }
+            else
+            {
+                uint16_t trim = 0;
+                if (fmode == AUTOCLIMB)
+                    trim = AUTOCLIMB_TRIM;
+
+                arl_out = roll_pid.calculate(imu.roll() - roll_target + PID_ROLL_TRIM);
+                ele_out = pitch_pid.calculate(imu.pitch() - pitch_target + PID_PITCH_TRIM - trim);
+
+                arl_out = Servo::limit(arl_out + Servo::CENTER);
+                ele_out = Servo::limit(ele_out + Servo::CENTER);
+            }
+            rud_out = ppm.get(ppmDecoder::RUD);
+
+            brk_out = 0;
+            if (ppm.get(ppmDecoder::GER) < SWITCH_POS2)
+                brk_out = BRAKE_NOTCH_1;
+            if (ppm.get(ppmDecoder::GER) < SWITCH_POS1)
+                brk_out = BRAKE_NOTCH_2;
+
+            state = SERVOSET;
+        break;
+
+        case SERVOSET:
+            servo[THR]->set(ppm.get(ppmDecoder::THR));
+
+            servo[RTS]->set(Mix::right_top(arl_out, ele_out, rud_out, brk_out));
+            servo[RBS]->set(Mix::right_bottom(arl_out, ele_out, rud_out, brk_out));
+            servo[LTS]->set(Mix::left_top(arl_out, ele_out, rud_out, brk_out));
+            servo[LBS]->set(Mix::left_bottom(arl_out, ele_out, rud_out, brk_out));
+
+            state = SERVOWRITE;
+        break;
+
+        case SERVOWRITE:
+            #ifdef ENABLE_SERVOS
+            Servo::write_all(servo, NUM_SERVOS);
+            #endif 
+
+            state = PPMSYNC;
+        break;
     }
-    if (state == PIDCALC)
-    {
-        float roll_target = (float)Servo::CENTER - ppm.get(ppmDecoder::ARL);
-        float pitch_target = (float)Servo::CENTER - ppm.get(ppmDecoder::ELE);
-
-        roll_target *= MAX_ROLL_ANGLE / 1000;
-        pitch_target *= MAX_PITCH_ANGLE / 1000;
-
-        if (fmode == PASSTHRU)
-        {
-            arl_out = ppm.get(ppmDecoder::ARL);
-            ele_out = ppm.get(ppmDecoder::ELE);
-        }
-        else
-        {
-            uint16_t trim = 0;
-            if (fmode == AUTOCLIMB)
-                trim = AUTOCLIMB_TRIM;
-
-            arl_out = roll_pid.calculate(imu.roll() - roll_target + PID_ROLL_TRIM);
-            ele_out = pitch_pid.calculate(imu.pitch() - pitch_target + PID_PITCH_TRIM - trim);
-
-            arl_out = Servo::limit(arl_out + Servo::CENTER);
-            ele_out = Servo::limit(ele_out + Servo::CENTER);
-        }
-        rud_out = ppm.get(ppmDecoder::RUD);
-
-        brk_out = 0;
-        if (ppm.get(ppmDecoder::GER) < SWITCH_POS2)
-            brk_out = 100;
-        if (ppm.get(ppmDecoder::GER) < SWITCH_POS1)
-            brk_out = 400;
-
-    }
-    if (state == SERVOSET)
-    {
-        servo[THR]->set(ppm.get(ppmDecoder::THR));
-
-        servo[RTS]->set(Mix::right_top(arl_out, ele_out, rud_out, brk_out));
-        servo[RBS]->set(Mix::right_bottom(arl_out, ele_out, rud_out, brk_out));
-        servo[LTS]->set(Mix::left_top(arl_out, ele_out, rud_out, brk_out));
-        servo[LBS]->set(Mix::left_bottom(arl_out, ele_out, rud_out, brk_out));
-    }
-    if (state == SERVOWRITE)
-    {
-        #ifdef ENABLE_SERVOS
-        Servo::write_all(servo, NUM_SERVOS);
-        #endif 
-    }
-
-    if (state == SERVOWRITE) 
-        state = PPMSYNC;
-    else
-        state = (State)(state + 1);
 
     #ifdef PRINT_LOOP_TIME
     uint16_t loop_time = micros() - timer;
