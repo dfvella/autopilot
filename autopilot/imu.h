@@ -63,17 +63,12 @@
 class Imu 
 {
     public:
-        // constructor sets the initial orientation of the aircraft
-        // OPTIONAL: provide a pin number for a status led indicator
-        Imu(int8_t pin);
-
-        // default constructor disabled status led indicator
         Imu();
 
-        // Waits until the accelerometer does not detect significant motion.
-        // Takes calibration readings to determine the gyroscope raw readings
-        // while at rest. Then, zeroes the gyroscope with reference to the
-        // gravitational force vector calculated from the accelerometer data. 
+        // OPTIONAL: provide a pin number to enable status led indicator
+        Imu(int8_t pin);
+
+        // Waits for rest then zeros gyro with reference to gravity
         void calibrate();
 
         // Immediately begins sampling accelerometer data and prints the average
@@ -82,13 +77,7 @@ class Imu
         // NOTE: Serial.begin() must be called before using this function
         void calibrate_accel();
 
-        // Samples the MPU6050 data. Constructs a 3D vector representing the
-        // angular velocity of the aircraft. Then, transforms this vector into
-        // a unit quaternion representing the rotation. Computes the product of 
-        // the last orientation and the rotation to determine the new orientation
-        // of the aircraft.
-        // NOTE: this function should be called at frequencies between 10-250hz for
-        // accurate angle calculations
+        // Updates the IMU's orientation
         void run();
 
         // Returns the roll angle of the aircraft in degrees
@@ -103,7 +92,6 @@ class Imu
         //  -180 < yaw < 180
         float yaw();
 
-        // Returns 4 byte int pulled directly from MPU6050 registers
         int32_t get_raw(uint8_t val);
 
         // Use as args for get_raw() and MPU6050::get()
@@ -138,47 +126,37 @@ class Imu
         // computes then returns the norm/length of a quaternion
         float norm(const Vector &v);
 
-        // stores the aircraft's current orientation
         Quaternion orientation;
 
-        // stores the aircraft's current roll, pitch, and yaw angles in degrees
         float x_angle, y_angle, z_angle;
 
-        // stores the aircraft's current roll and pitch angles in degrees
-        // calculated only using the net acceleration on the aircraft
         float x_angle_accel, y_angle_accel;
 
-        // stores the gyroscope's raw angular velocity readings while not moving
         float x_zero, y_zero, z_zero;
 
-        // stores the system clock time when orientation was last determined
         unsigned long timer;
 
-        // manages I2C interface with the Mpu6050 sensor
+        // Manages I2C interface with the MPU6050 sensor
         class Mpu6050 
         {
             public:
                 Mpu6050();
 
-                // Begins I2C communication with the Mpu6050 sensor. Configures the
-                // Mpu6050 power settings, gyroscope accuracy, and accelerometer
-                // accuracy.
+                // Sets up I2C communication with the MPU6050 sensor
                 void begin();
 
-                // Opens I2C communication with the Mpu6050 sensor. Retrieves raw
-                // gyroscope, accelerometer, and temperature data and stores it in the 
-                // private int array data.
+                // Fills data array with the current MPU6050 measurements
                 void fetch();
 
-                // returns the requested raw Mpu6050 data
+                // Returns the requested raw MPU6050 data
+                // val - one of the following constant expressions:
+                // ACCELX, ACCELY, ACCELZ, GYROX, GYROY, GYROZ
                 int32_t get(uint8_t val);
 
                 static constexpr float TICKS_PER_DEGREE = 0.0152672;
                 static constexpr float TICKS_PER_G = 4096.0;
 
             private:
-                // Stores the raw data Mpu6050 sensor data retrieved from the most 
-                // recent fetch() call.
                 int32_t data[7];
         };
 
