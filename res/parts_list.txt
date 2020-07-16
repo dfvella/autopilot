@@ -1,0 +1,10 @@
+Parts List:
+ x1 Battery:                    Zippy Compact 1600 mAh
+ x1 Radio Reciever:             OrangeRx R617XL
+ x1 Microcontroller:            Arduino Nano
+ x1 Gyroscope/Accelerometer:    mpu6050 6-DoF
+ x1 Motor Controller:           Turnigy plush 30A
+ x4 Servo Motors:               Turnigy TG9e 
+ x1 Main Motor:                 Turnigy D2836/8
+ x1 Propeller:                  APC 9x6 Thin Electric
+ 
