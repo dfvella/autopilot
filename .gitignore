@@ -1,0 +1,4 @@
+*.vscode*
+*__pycache__*
+
+tools/serial.log
